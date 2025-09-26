@@ -1,8 +1,5 @@
 // --- CONFIGURACIÓN ---
-// YA NO NECESITAMOS EL CLIENT_ID AQUÍ, lo usará la Netlify Function.
-
 // La URI de redirección se obtiene dinámicamente.
-// Asegúrate de configurar la URL correcta en tu App de John Deere y en las variables de entorno de Netlify.
 const REDIRECT_URI = window.location.origin + window.location.pathname;
 
 // --- ESTADO DE LA APLICACIÓN ---
@@ -22,10 +19,18 @@ const errorMessage = document.getElementById('error-message');
  * Inicia el flujo de autenticación OAuth 2.0.
  */
 function handleLogin() {
-    // TU CLIENT_ID DE JOHN DEERE. Es seguro tenerlo en el frontend.
     const CLIENT_ID = '0oaqqj19wrudozUJm5d7';
     const scopes = 'ag1 org1 eq1 files offline_access';
-    const authUrl = `https://signin.johndeere.com/oauth2/aus78tnlaysMraFhC1t7/v1/authorize?response_type=code&client_id=${CLIENT_ID}&redirect_uri=${REDIRECT_URI}&scope=${scopes}`;
+
+    // --- CAMBIO 1: GENERAR Y GUARDAR EL PARÁMETRO 'state' ---
+    // Generamos una cadena aleatoria para el estado.
+    const state = Math.random().toString(36).substring(2);
+    // La guardamos en la sesión del navegador para verificarla al volver.
+    sessionStorage.setItem('oauth_state', state);
+
+    // Añadimos el parámetro 'state' a la URL de autorización.
+    const authUrl = `https://signin.johndeere.com/oauth2/aus78tnlaysMraFhC1t7/v1/authorize?response_type=code&client_id=${CLIENT_ID}&redirect_uri=${REDIRECT_URI}&scope=${scopes}&state=${state}`;
+    
     window.location.href = authUrl;
 }
 
@@ -48,8 +53,6 @@ async function getToken(code) {
         }
 
         accessToken = data.access_token;
-        // En una app real, aquí también guardarías el refresh_token y expires_in en localStorage
-        // para manejar la expiración del token.
         
         showDashboard();
         fetchOrganizations();
@@ -92,7 +95,6 @@ async function fetchMachines(orgId) {
     }
 }
 
-
 /**
  * Helper para hacer llamadas a la API con el token de acceso.
  * @param {string} url - La URL del endpoint de la API.
@@ -111,7 +113,6 @@ async function fetchWithToken(url) {
 
     if (!response.ok) {
         if (response.status === 401) {
-            // Aquí implementarías la lógica de refresh token.
             throw new Error('Token no autorizado o expirado. Por favor, vuelve a iniciar sesión.');
         }
         const errorData = await response.text();
@@ -119,7 +120,6 @@ async function fetchWithToken(url) {
     }
     return response;
 }
-
 
 // --- RENDERIZADO DE UI ---
 
@@ -139,7 +139,7 @@ function showDashboard() {
 }
 
 function displayOrganizations(organizations) {
-    orgList.innerHTML = ''; // Limpiar loader
+    orgList.innerHTML = '';
     if (!organizations || organizations.length === 0) {
         orgList.innerHTML = '<p class="placeholder">No se encontraron organizaciones.</p>';
         return;
@@ -149,14 +149,11 @@ function displayOrganizations(organizations) {
         const orgItem = document.createElement('div');
         orgItem.className = 'list-item';
         orgItem.textContent = org.name;
-        orgItem.dataset.orgId = org.id; // Guardamos el ID para usarlo después
+        orgItem.dataset.orgId = org.id;
 
         orgItem.addEventListener('click', () => {
-            // Marcar como activo
             document.querySelectorAll('.list-item.active').forEach(item => item.classList.remove('active'));
             orgItem.classList.add('active');
-            
-            // Cargar máquinas
             fetchMachines(org.id);
         });
         orgList.appendChild(orgItem);
@@ -164,7 +161,7 @@ function displayOrganizations(organizations) {
 }
 
 function displayMachines(machines) {
-    machineList.innerHTML = ''; // Limpiar loader o placeholder
+    machineList.innerHTML = '';
     if (!machines || machines.length === 0) {
         machineList.innerHTML = '<p class="placeholder">Esta organización no tiene máquinas conectadas.</p>';
         return;
@@ -211,9 +208,32 @@ function hideError() {
 window.onload = () => {
     const urlParams = new URLSearchParams(window.location.search);
     const authCode = urlParams.get('code');
+    const error = urlParams.get('error');
+    const returnedState = urlParams.get('state');
+
+    // Limpiamos la URL para que los parámetros no queden visibles
+    window.history.replaceState({}, document.title, window.location.pathname);
+
+    if (error) {
+        const errorDescription = urlParams.get('error_description') || 'Ocurrió un error durante la autorización.';
+        displayError(`Error de John Deere: ${errorDescription}`);
+        return;
+    }
 
     if (authCode) {
-        window.history.replaceState({}, document.title, window.location.pathname);
+        // --- CAMBIO 2: VERIFICAR EL PARÁMETRO 'state' ---
+        const storedState = sessionStorage.getItem('oauth_state');
+        // Limpiamos el state de la sesión para que no se pueda reutilizar.
+        sessionStorage.removeItem('oauth_state');
+
+        if (!storedState || storedState !== returnedState) {
+            displayError('Error de seguridad: el parámetro "state" no coincide. Intenta iniciar sesión de nuevo.');
+            // Mostramos el botón de login de nuevo para que el usuario pueda reintentar
+            setTimeout(showLoginButton, 3000); 
+            return;
+        }
+
+        // Si el state es correcto, procedemos a obtener el token.
         getToken(authCode);
     } else {
         showLoginButton();
