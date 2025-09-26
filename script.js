@@ -19,15 +19,35 @@ const errorMessage = document.getElementById('error-message');
 
 async function fetchWithToken(endpoint) {
     if (!accessToken) throw new Error("No hay token de acceso disponible.");
+    
     const proxyUrl = `/.netlify/functions/api-proxy?endpoint=${encodeURIComponent(endpoint)}`;
     const response = await fetch(proxyUrl, { headers: { 'x-jd-access-token': accessToken } });
+
     if (!response.ok) {
-        const errorData = await response.json();
-        const error = new Error(errorData.message || errorData.error_description || `Error de API (${response.status})`);
+        // --- INICIO DEL CAMBIO CLAVE ---
+        // Leemos la respuesta como texto, que nunca falla.
+        const errorText = await response.text();
+        let errorData;
+        let errorMessage;
+
+        try {
+            // Intentamos parsear el texto como JSON.
+            errorData = JSON.parse(errorText);
+            errorMessage = errorData.message || errorData.error_description || `Error de API (${response.status})`;
+        } catch (e) {
+            // Si falla el parseo, ¡no es JSON! Usamos el texto plano.
+            errorData = { message: errorText }; // Creamos un objeto de error consistente.
+            errorMessage = errorText;
+        }
+        // --- FIN DEL CAMBIO CLAVE ---
+
+        const error = new Error(errorMessage);
         error.status = response.status;
-        error.body = errorData;
+        error.body = errorData; // Adjuntamos el cuerpo (JSON parseado o nuestro fallback).
         throw error;
     }
+
+    // Si la respuesta fue exitosa, la devolvemos para ser procesada como JSON más adelante.
     return response;
 }
 
