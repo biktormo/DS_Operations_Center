@@ -15,7 +15,6 @@ const tabs = document.querySelector('.tabs');
 const loader = document.getElementById('loader');
 const errorMessage = document.getElementById('error-message');
 
-
 // --- LÓGICA DE LA API ---
 
 async function fetchWithToken(endpoint) {
@@ -30,6 +29,41 @@ async function fetchWithToken(endpoint) {
         throw error;
     }
     return response;
+}
+
+function handleLogin() {
+    const CLIENT_ID = '0oaqqj19wrudozUJm5d7';
+    const scopes = 'ag1 org1 eq1 files offline_access';
+    const state = Math.random().toString(36).substring(2);
+    sessionStorage.setItem('oauth_state', state);
+    const authUrl = `https://signin.johndeere.com/oauth2/aus78tnlaysMraFhC1t7/v1/authorize?response_type=code&client_id=${CLIENT_ID}&redirect_uri=${REDIRECT_URI}&scope=${scopes}&state=${state}`;
+    window.location.href = authUrl;
+}
+
+async function getToken(code) {
+    showLoader(mainContent);
+    try {
+        const response = await fetch('/.netlify/functions/get-token', { method: 'POST', body: JSON.stringify({ code }) });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'No se pudo obtener el token.');
+        accessToken = data.access_token;
+        showDashboard();
+        fetchOrganizations(); // ¡La función que faltaba!
+    } catch (error) {
+        console.error('Error al obtener el token:', error);
+        displayError(`Error de autenticación: ${error.message}`);
+    }
+}
+
+async function fetchOrganizations() {
+    showLoader(orgList);
+    try {
+        const response = await fetchWithToken('organizations');
+        const data = await response.json();
+        displayOrganizations(data.values);
+    } catch (error) {
+        handleApiError(error, orgList, 'organizaciones');
+    }
 }
 
 async function handleOrgSelection(orgId) {
@@ -168,12 +202,34 @@ tabs.addEventListener('click', (e) => {
     });
 });
 
-function handleLogin() {const CLIENT_ID = '0oaqqj19wrudozUJm5d7'; const scopes = 'ag1 org1 eq1 files offline_access'; const state = Math.random().toString(36).substring(2); sessionStorage.setItem('oauth_state', state); const authUrl = `https://signin.johndeere.com/oauth2/aus78tnlaysMraFhC1t7/v1/authorize?response_type=code&client_id=${CLIENT_ID}&redirect_uri=${REDIRECT_URI}&scope=${scopes}&state=${state}`; window.location.href = authUrl;}
-async function getToken(code) {showLoader(mainContent); try {const response = await fetch('/.netlify/functions/get-token', { method: 'POST', body: JSON.stringify({ code }) }); const data = await response.json(); if (!response.ok) throw new Error(data.error || 'No se pudo obtener el token.'); accessToken = data.access_token; showDashboard(); fetchOrganizations();} catch (error) {console.error('Error al obtener el token:', error); displayError(`Error de autenticación: ${error.message}`);}}
-function showLoginButton() {mainContent.innerHTML = `<a href="#" id="login-btn" class="login-button">Conectar con John Deere</a>`; document.getElementById('login-btn').addEventListener('click', (e) => { e.preventDefault(); handleLogin(); });}
-function showDashboard() {mainContent.style.display = 'none'; dashboard.style.display = 'grid';}
-function showLoader(container, text = 'Cargando...') {hideError(); container.innerHTML = `<div class="loader-text">${text}</div>`;}
-function hideLoader() {/* loader.style.display = 'none'; */}
-function displayError(message, container = null, isHtml = false) {if (container) {if (isHtml) {container.innerHTML = `<div class="error-inline">${message}</div>`;} else {container.innerHTML = `<div class="error-inline">${message}</div>`;}} else {mainContent.innerHTML = ''; if (isHtml) {errorMessage.innerHTML = message;} else {errorMessage.textContent = message;} errorMessage.style.display = 'block';} hideLoader();}
-function hideError() {errorMessage.style.display = 'none';}
-window.onload = () => {const urlParams = new URLSearchParams(window.location.search); const authCode = urlParams.get('code'); const error = urlParams.get('error'); const returnedState = urlParams.get('state'); window.history.replaceState({}, document.title, window.location.pathname); if (error) {const errorDescription = urlParams.get('error_description') || 'Ocurrió un error.'; displayError(`Error de John Deere: ${errorDescription}`); return;} if (authCode) {const storedState = sessionStorage.getItem('oauth_state'); sessionStorage.removeItem('oauth_state'); if (!storedState || storedState !== returnedState) {displayError('Error de seguridad: el "state" no coincide.'); setTimeout(showLoginButton, 3000); return;} getToken(authCode);} else {showLoginButton();}};
+function showLoginButton() { mainContent.innerHTML = `<a href="#" id="login-btn" class="login-button">Conectar con John Deere</a>`; document.getElementById('login-btn').addEventListener('click', (e) => { e.preventDefault(); handleLogin(); }); }
+function showDashboard() { mainContent.style.display = 'none'; dashboard.style.display = 'grid'; }
+function showLoader(container, text = 'Cargando...') { hideError(); container.innerHTML = `<div class="loader-text">${text}</div>`; }
+function hideLoader() { }
+function displayError(message, container = null, isHtml = false) { if (container) { if (isHtml) { container.innerHTML = `<div class="error-inline">${message}</div>`; } else { container.innerHTML = `<div class="error-inline">${message}</div>`; } } else { mainContent.innerHTML = ''; if (isHtml) { errorMessage.innerHTML = message; } else { errorMessage.textContent = message; } errorMessage.style.display = 'block'; } hideLoader(); }
+function hideError() { errorMessage.style.display = 'none'; }
+
+window.onload = () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const authCode = urlParams.get('code');
+    const error = urlParams.get('error');
+    const returnedState = urlParams.get('state');
+    window.history.replaceState({}, document.title, window.location.pathname);
+    if (error) {
+        const errorDescription = urlParams.get('error_description') || 'Ocurrió un error.';
+        displayError(`Error de John Deere: ${errorDescription}`);
+        return;
+    }
+    if (authCode) {
+        const storedState = sessionStorage.getItem('oauth_state');
+        sessionStorage.removeItem('oauth_state');
+        if (!storedState || storedState !== returnedState) {
+            displayError('Error de seguridad: el "state" no coincide.');
+            setTimeout(showLoginButton, 3000);
+            return;
+        }
+        getToken(authCode);
+    } else {
+        showLoginButton();
+    }
+};
