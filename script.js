@@ -12,6 +12,9 @@ const machineList = document.getElementById('machine-list');
 const fieldList = document.getElementById('field-list');
 const operationList = document.getElementById('operation-list');
 const tabs = document.querySelector('.tabs');
+const loader = document.getElementById('loader');
+const errorMessage = document.getElementById('error-message');
+
 
 // --- LÓGICA DE LA API ---
 
@@ -30,12 +33,9 @@ async function fetchWithToken(endpoint) {
 }
 
 async function handleOrgSelection(orgId) {
-    // Limpiar paneles secundarios al seleccionar nueva org
     machineList.innerHTML = '<p class="placeholder">Selecciona una organización para ver sus datos.</p>';
     fieldList.innerHTML = '<p class="placeholder">Selecciona una organización para ver sus datos.</p>';
     operationList.innerHTML = '<p class="placeholder">Selecciona un campo para ver sus operaciones.</p>';
-    
-    // Cargar datos para la organización seleccionada
     fetchMachines(orgId);
     fetchFields(orgId);
 }
@@ -56,7 +56,7 @@ async function fetchFields(orgId) {
     try {
         const response = await fetchWithToken(`organizations/${orgId}/fields`);
         const data = await response.json();
-        displayFields(data.values, orgId); // Pasamos orgId para la siguiente llamada
+        displayFields(data.values, orgId);
     } catch (error) {
         handleApiError(error, fieldList, 'campos');
     }
@@ -154,15 +154,11 @@ function handleApiError(error, container, resourceName) {
     displayError(`No se pudieron cargar los ${resourceName}. ${error.message}`, container);
 }
 
-// Lógica para las pestañas
 tabs.addEventListener('click', (e) => {
     if (!e.target.classList.contains('tab-button')) return;
-
     const tabName = e.target.dataset.tab;
-
     tabs.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
     e.target.classList.add('active');
-
     document.querySelectorAll('.tab-content').forEach(content => {
         if (content.id === `${tabName}-list`) {
             content.classList.add('active');
@@ -171,9 +167,6 @@ tabs.addEventListener('click', (e) => {
         }
     });
 });
-
-
-// --- FUNCIONES DE INICIO Y AUXILIARES (la mayoría sin cambios) ---
 
 function handleLogin() {const CLIENT_ID = '0oaqqj19wrudozUJm5d7'; const scopes = 'ag1 org1 eq1 files offline_access'; const state = Math.random().toString(36).substring(2); sessionStorage.setItem('oauth_state', state); const authUrl = `https://signin.johndeere.com/oauth2/aus78tnlaysMraFhC1t7/v1/authorize?response_type=code&client_id=${CLIENT_ID}&redirect_uri=${REDIRECT_URI}&scope=${scopes}&state=${state}`; window.location.href = authUrl;}
 async function getToken(code) {showLoader(mainContent); try {const response = await fetch('/.netlify/functions/get-token', { method: 'POST', body: JSON.stringify({ code }) }); const data = await response.json(); if (!response.ok) throw new Error(data.error || 'No se pudo obtener el token.'); accessToken = data.access_token; showDashboard(); fetchOrganizations();} catch (error) {console.error('Error al obtener el token:', error); displayError(`Error de autenticación: ${error.message}`);}}
