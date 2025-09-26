@@ -1,6 +1,6 @@
 // --- CONFIGURACIÓN ---
 // La URI de redirección se obtiene dinámicamente.
-const REDIRECT_URI = window.location.origin + window.location.pathname;
+const REDIRECT_URI = window.location.origin;
 
 // --- ESTADO DE LA APLICACIÓN ---
 let accessToken = null;
