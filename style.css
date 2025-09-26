@@ -45,10 +45,6 @@ header p {
 /* --- FIN DE ESTILOS AÑADIDOS --- */
 
 .login-button {
-/* ... el resto de tus estilos ... */
-}
-
-.login-button {
     background-color: #38A169; /* Verde John Deere */
     color: white;
     border: none;

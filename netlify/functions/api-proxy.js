@@ -1,6 +1,5 @@
 const fetch = require('node-fetch');
 
-// La URL base DEBE terminar en barra para que la resolución de URL funcione correctamente.
 const API_BASE_URL = 'https://sandboxapi.deere.com/platform/';
 
 exports.handler = async (event) => {
@@ -15,40 +14,37 @@ exports.handler = async (event) => {
     }
 
     try {
-        // --- CAMBIO CLAVE: Usar el constructor URL para unir la base y el endpoint ---
-        // Esto maneja correctamente las barras (/) y otros caracteres,
-        // evitando problemas como las dobles barras (//).
         const apiUrl = new URL(endpoint, API_BASE_URL).toString();
-
-        // Log para depuración en Netlify (puedes quitarlo después)
         console.log(`[PROXY] Calling API: ${apiUrl}`);
 
         const response = await fetch(apiUrl, {
             headers: {
                 'Authorization': `Bearer ${accessToken}`,
                 'Accept': 'application/vnd.deere.axiom.v3+json',
+                // --- CAMBIO CLAVE #1: Desactivar la paginación ---
+                'No_paging': 'True'
             },
         });
 
-        // Importante: La API de JD puede devolver una respuesta no-JSON en caso de error.
-        // Primero verificamos el status y luego intentamos parsear.
+        // --- CAMBIO CLAVE #2: Manejo de errores más robusto ---
+        // Leemos el cuerpo de la respuesta SIN IMPORTAR si fue exitosa o no.
+        const responseBodyText = await response.text();
+
+        // Si la respuesta no fue exitosa (ej: 403, 401, 500), la reenviamos tal cual al frontend.
         if (!response.ok) {
-            const errorText = await response.text();
-            console.error(`Error from John Deere API for endpoint ${endpoint}:`, errorText);
-            // Intentamos parsear como JSON, si falla, devolvemos el texto plano.
-            try {
-                const errorJson = JSON.parse(errorText);
-                return { statusCode: response.status, body: JSON.stringify(errorJson) };
-            } catch (e) {
-                return { statusCode: response.status, body: JSON.stringify({ error: 'API Error', message: errorText }) };
-            }
+            console.error(`Error from John Deere API for endpoint ${endpoint}:`, responseBodyText);
+            // Reenviamos el status original y el cuerpo del error.
+            // El frontend se encargará de parsearlo como JSON.
+            return {
+                statusCode: response.status,
+                body: responseBodyText 
+            };
         }
         
-        const data = await response.json();
-
+        // Si la respuesta fue exitosa, devolvemos los datos.
         return {
             statusCode: 200,
-            body: JSON.stringify(data),
+            body: responseBodyText,
         };
 
     } catch (error) {
