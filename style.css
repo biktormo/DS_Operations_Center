@@ -36,6 +36,18 @@ header p {
     margin-bottom: 30px;
 }
 
+/* --- ESTILOS AÑADIDOS PARA EL LOGO --- */
+.company-logo {
+    height: 70px; /* Ajusta esta altura a lo que necesites */
+    max-width: 200px; /* Evita que el logo sea demasiado ancho */
+    margin-bottom: 20px; /* Espacio entre el logo y el título h1 */
+}
+/* --- FIN DE ESTILOS AÑADIDOS --- */
+
+.login-button {
+/* ... el resto de tus estilos ... */
+}
+
 .login-button {
     background-color: #38A169; /* Verde John Deere */
     color: white;
@@ -189,4 +201,80 @@ header p {
     text-align: center;
     color: #718096;
     padding: 20px;
+}
+
+/* ... tus estilos existentes ... */
+
+.permission-link {
+    display: inline-block;
+    margin: 10px 0;
+    padding: 8px 15px;
+    background-color: #3182ce;
+    color: white;
+    text-decoration: none;
+    border-radius: 5px;
+    font-weight: bold;
+    transition: background-color 0.2s;
+}
+
+.permission-link:hover {
+    background-color: #2b6cb0;
+}
+
+/* ... tus estilos existentes ... */
+
+/* Actualizar layout del tablero a 3 columnas */
+.dashboard-grid {
+    grid-template-columns: 1fr 1.2fr 1.5fr; /* Organizaciones | Datos | Detalles */
+    max-width: 1200px; /* Aumentar el ancho para 3 columnas */
+}
+.container {
+    max-width: 1200px;
+}
+
+/* Estilos para las pestañas */
+.tabs {
+    display: flex;
+    border-bottom: 2px solid #edf2f7;
+    margin-bottom: 20px;
+}
+.tab-button {
+    padding: 10px 20px;
+    cursor: pointer;
+    border: none;
+    background-color: transparent;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #718096;
+    border-bottom: 3px solid transparent;
+    transition: color 0.2s, border-color 0.2s;
+}
+.tab-button:hover {
+    color: #2d3748;
+}
+.tab-button.active {
+    color: #38A169;
+    border-bottom-color: #38A169;
+}
+
+/* Lógica para mostrar/ocultar contenido de pestañas */
+.tab-content {
+    display: none;
+}
+.tab-content.active {
+    display: block;
+}
+
+/* Estilos para las operaciones */
+.operation-card {
+    background-color: #ffffff;
+    border: 1px solid #e2e8f0;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+}
+.operation-card h4 {
+    margin: 0;
+    color: #2d3748;
+    font-size: 1rem;
 }

@@ -9,24 +9,37 @@
 <body>
     <div class="container">
         <header>
-            <h1>DS Operation Center Dashboard</h1>
-            <p>Información de organizaciones y máquinas conectadas.</p>
+            <img src="./assets/logo.png" alt="Logo de SARTOR" class="company-logo">
+            <h1>SARTOR - Operation Center Dashboard</h1>
+            <p>Información de organizaciones, máquinas y operaciones de campo.</p>
         </header>
 
         <main id="main-content">
-            <!-- El contenido inicial (botón de login) se generará con JavaScript -->
+            <!-- Contenido inicial (botón de login) -->
         </main>
 
-        <!-- Contenedores para el tablero -->
         <div id="dashboard" class="dashboard-grid" style="display: none;">
             <div id="org-panel" class="panel">
                 <h2>Organizaciones</h2>
                 <div id="org-list" class="list-container"></div>
             </div>
-            <div id="machine-panel" class="panel">
-                <h2>Máquinas</h2>
-                <div id="machine-list" class="list-container">
-                    <p class="placeholder">Selecciona una organización para ver sus máquinas.</p>
+            <div id="data-panel" class="panel">
+                <!-- Pestañas para cambiar entre Máquinas y Campos -->
+                <div class="tabs">
+                    <button class="tab-button active" data-tab="machines">Máquinas</button>
+                    <button class="tab-button" data-tab="fields">Campos</button>
+                </div>
+                <div id="machine-list" class="list-container tab-content active">
+                    <p class="placeholder">Selecciona una organización para ver sus datos.</p>
+                </div>
+                <div id="field-list" class="list-container tab-content">
+                     <!-- Contenido de campos se cargará aquí -->
+                </div>
+            </div>
+            <div id="details-panel" class="panel">
+                <h2>Operaciones de Campo</h2>
+                <div id="operation-list" class="list-container">
+                    <p class="placeholder">Selecciona un campo para ver sus operaciones.</p>
                 </div>
             </div>
         </div>
@@ -34,7 +47,6 @@
         <div id="loader" class="loader" style="display: none;"></div>
         <div id="error-message" class="error"></div>
     </div>
-
     <script src="script.js"></script>
 </body>
 </html>

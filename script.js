@@ -9,110 +9,71 @@ const mainContent = document.getElementById('main-content');
 const dashboard = document.getElementById('dashboard');
 const orgList = document.getElementById('org-list');
 const machineList = document.getElementById('machine-list');
-const loader = document.getElementById('loader');
-const errorMessage = document.getElementById('error-message');
+const fieldList = document.getElementById('field-list');
+const operationList = document.getElementById('operation-list');
+const tabs = document.querySelector('.tabs');
 
 // --- LÓGICA DE LA API ---
 
-function handleLogin() {
-    const CLIENT_ID = '0oaqqj19wrudozUJm5d7';
-    const scopes = 'ag1 org1 eq1 files offline_access';
-    const state = Math.random().toString(36).substring(2);
-    sessionStorage.setItem('oauth_state', state);
-    const authUrl = `https://signin.johndeere.com/oauth2/aus78tnlaysMraFhC1t7/v1/authorize?response_type=code&client_id=${CLIENT_ID}&redirect_uri=${REDIRECT_URI}&scope=${scopes}&state=${state}`;
-    window.location.href = authUrl;
-}
-
-async function getToken(code) {
-    showLoader(mainContent);
-    try {
-        const response = await fetch('/.netlify/functions/get-token', {
-            method: 'POST',
-            body: JSON.stringify({ code }),
-        });
-        const data = await response.json();
-        if (!response.ok) {
-            throw new Error(data.error || 'No se pudo obtener el token.');
-        }
-        accessToken = data.access_token;
-        showDashboard();
-        fetchOrganizations();
-    } catch (error) {
-        console.error('Error al obtener el token:', error);
-        displayError(`Error de autenticación: ${error.message}`);
-    }
-}
-
-// --- CAMBIO CLAVE: fetchWithToken ahora usa el proxy ---
-/**
- * Helper para hacer llamadas a la API de John Deere a través de nuestro proxy.
- * @param {string} endpoint - El endpoint de la API a consultar (ej: 'organizations').
- * @returns {Promise<Response>}
- */
 async function fetchWithToken(endpoint) {
-    if (!accessToken) {
-        throw new Error("No hay token de acceso disponible.");
-    }
-
-    // La URL de nuestra función proxy, pasándole el endpoint como parámetro
-    const proxyUrl = `/.netlify/functions/api-proxy?endpoint=${endpoint}`;
-
-    const response = await fetch(proxyUrl, {
-        headers: {
-            // Enviamos el token en un header personalizado para que el proxy lo use
-            'x-jd-access-token': accessToken,
-        },
-    });
-
+    if (!accessToken) throw new Error("No hay token de acceso disponible.");
+    const proxyUrl = `/.netlify/functions/api-proxy?endpoint=${encodeURIComponent(endpoint)}`;
+    const response = await fetch(proxyUrl, { headers: { 'x-jd-access-token': accessToken } });
     if (!response.ok) {
-        // El proxy nos devolverá el error original de la API
         const errorData = await response.json();
-        throw new Error(errorData.message || errorData.error_description || `Error de API (${response.status})`);
+        const error = new Error(errorData.message || errorData.error_description || `Error de API (${response.status})`);
+        error.status = response.status;
+        error.body = errorData;
+        throw error;
     }
-    // No necesitamos `response.json()` aquí si fetchOrganizations y fetchMachines lo hacen.
     return response;
 }
 
-
-async function fetchOrganizations() {
-    showLoader(orgList);
-    try {
-        // Ahora llamamos con el nombre del endpoint, no la URL completa
-        const response = await fetchWithToken('organizations');
-        const data = await response.json();
-        displayOrganizations(data.values);
-    } catch (error) {
-        console.error('Error en la llamada a la API de Organizaciones:', error);
-        displayError(`Error al obtener organizaciones: ${error.message}`, orgList);
-    }
+async function handleOrgSelection(orgId) {
+    // Limpiar paneles secundarios al seleccionar nueva org
+    machineList.innerHTML = '<p class="placeholder">Selecciona una organización para ver sus datos.</p>';
+    fieldList.innerHTML = '<p class="placeholder">Selecciona una organización para ver sus datos.</p>';
+    operationList.innerHTML = '<p class="placeholder">Selecciona un campo para ver sus operaciones.</p>';
+    
+    // Cargar datos para la organización seleccionada
+    fetchMachines(orgId);
+    fetchFields(orgId);
 }
-
 
 async function fetchMachines(orgId) {
     showLoader(machineList, 'Cargando máquinas...');
     try {
-        // Construimos el endpoint relativo
-        const endpoint = `organizations/${orgId}/machines`;
-        const response = await fetchWithToken(endpoint);
+        const response = await fetchWithToken(`organizations/${orgId}/machines`);
         const data = await response.json();
         displayMachines(data.values);
     } catch (error) {
-        console.error(`Error al obtener máquinas para la org ${orgId}:`, error);
-        displayError(`No se pudieron cargar las máquinas. ${error.message}`, machineList);
+        handleApiError(error, machineList, 'máquinas');
     }
 }
 
-// --- RENDERIZADO DE UI (sin cambios) ---
-
-function showLoginButton() {
-    mainContent.innerHTML = `<a href="#" id="login-btn" class="login-button">Conectar con John Deere</a>`;
-    document.getElementById('login-btn').addEventListener('click', (e) => { e.preventDefault(); handleLogin(); });
+async function fetchFields(orgId) {
+    showLoader(fieldList, 'Cargando campos...');
+    try {
+        const response = await fetchWithToken(`organizations/${orgId}/fields`);
+        const data = await response.json();
+        displayFields(data.values, orgId); // Pasamos orgId para la siguiente llamada
+    } catch (error) {
+        handleApiError(error, fieldList, 'campos');
+    }
 }
 
-function showDashboard() {
-    mainContent.style.display = 'none';
-    dashboard.style.display = 'grid';
+async function fetchFieldOperations(fieldId, orgId) {
+    showLoader(operationList, 'Cargando operaciones...');
+    try {
+        const response = await fetchWithToken(`organizations/${orgId}/fields/${fieldId}/fieldOperations`);
+        const data = await response.json();
+        displayFieldOperations(data.values);
+    } catch (error) {
+        handleApiError(error, operationList, 'operaciones de campo');
+    }
 }
+
+// --- RENDERIZADO Y MANEJO DE UI ---
 
 function displayOrganizations(organizations) {
     orgList.innerHTML = '';
@@ -124,11 +85,10 @@ function displayOrganizations(organizations) {
         const orgItem = document.createElement('div');
         orgItem.className = 'list-item';
         orgItem.textContent = org.name;
-        orgItem.dataset.orgId = org.id;
         orgItem.addEventListener('click', () => {
-            document.querySelectorAll('.list-item.active').forEach(item => item.classList.remove('active'));
+            document.querySelectorAll('#org-list .list-item.active').forEach(item => item.classList.remove('active'));
             orgItem.classList.add('active');
-            fetchMachines(org.id);
+            handleOrgSelection(org.id);
         });
         orgList.appendChild(orgItem);
     });
@@ -148,53 +108,79 @@ function displayMachines(machines) {
     });
 }
 
-function showLoader(container, text = 'Cargando...') {
-    hideError();
-    container.innerHTML = `<div class="loader-text">${text}</div>`;
-    loader.style.display = 'block';
-}
-
-function hideLoader() {
-    loader.style.display = 'none';
-}
-
-function displayError(message, container = null) {
-    if (container) {
-        container.innerHTML = `<div class="error-inline">${message}</div>`;
-    } else {
-        mainContent.innerHTML = '';
-        errorMessage.textContent = message;
-        errorMessage.style.display = 'block';
-    }
-    hideLoader();
-}
-
-function hideError() {
-    errorMessage.style.display = 'none';
-}
-
-// --- PUNTO DE ENTRADA (sin cambios) ---
-window.onload = () => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const authCode = urlParams.get('code');
-    const error = urlParams.get('error');
-    const returnedState = urlParams.get('state');
-    window.history.replaceState({}, document.title, window.location.pathname);
-    if (error) {
-        const errorDescription = urlParams.get('error_description') || 'Ocurrió un error durante la autorización.';
-        displayError(`Error de John Deere: ${errorDescription}`);
+function displayFields(fields, orgId) {
+    fieldList.innerHTML = '';
+    if (!fields || fields.length === 0) {
+        fieldList.innerHTML = '<p class="placeholder">Esta organización no tiene campos registrados.</p>';
         return;
     }
-    if (authCode) {
-        const storedState = sessionStorage.getItem('oauth_state');
-        sessionStorage.removeItem('oauth_state');
-        if (!storedState || storedState !== returnedState) {
-            displayError('Error de seguridad: el parámetro "state" no coincide. Intenta iniciar sesión de nuevo.');
-            setTimeout(showLoginButton, 3000); 
+    fields.forEach(field => {
+        const fieldItem = document.createElement('div');
+        fieldItem.className = 'list-item';
+        fieldItem.textContent = field.name;
+        fieldItem.addEventListener('click', () => {
+            document.querySelectorAll('#field-list .list-item.active').forEach(item => item.classList.remove('active'));
+            fieldItem.classList.add('active');
+            fetchFieldOperations(field.id, orgId);
+        });
+        fieldList.appendChild(fieldItem);
+    });
+}
+
+function displayFieldOperations(operations) {
+    operationList.innerHTML = '';
+    if (!operations || operations.length === 0) {
+        operationList.innerHTML = '<p class="placeholder">No se encontraron operaciones para este campo.</p>';
+        return;
+    }
+    operations.forEach(op => {
+        const card = document.createElement('div');
+        card.className = 'operation-card';
+        card.innerHTML = `<h4>${op.name}</h4>`;
+        operationList.appendChild(card);
+    });
+}
+
+function handleApiError(error, container, resourceName) {
+    console.error(`Error al obtener ${resourceName}:`, error);
+    if (error.status === 403 && error.body && error.body.links) {
+        const connectionLink = error.body.links.find(link => link.rel === 'connections');
+        if (connectionLink) {
+            const messageHtml = `Se requieren permisos. <a href="${connectionLink.uri}" target="_blank" class="permission-link">Habilita el acceso aquí</a> y reintenta.`;
+            displayError(messageHtml, container, true);
             return;
         }
-        getToken(authCode);
-    } else {
-        showLoginButton();
     }
-};
+    displayError(`No se pudieron cargar los ${resourceName}. ${error.message}`, container);
+}
+
+// Lógica para las pestañas
+tabs.addEventListener('click', (e) => {
+    if (!e.target.classList.contains('tab-button')) return;
+
+    const tabName = e.target.dataset.tab;
+
+    tabs.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+    e.target.classList.add('active');
+
+    document.querySelectorAll('.tab-content').forEach(content => {
+        if (content.id === `${tabName}-list`) {
+            content.classList.add('active');
+        } else {
+            content.classList.remove('active');
+        }
+    });
+});
+
+
+// --- FUNCIONES DE INICIO Y AUXILIARES (la mayoría sin cambios) ---
+
+function handleLogin() {const CLIENT_ID = '0oaqqj19wrudozUJm5d7'; const scopes = 'ag1 org1 eq1 files offline_access'; const state = Math.random().toString(36).substring(2); sessionStorage.setItem('oauth_state', state); const authUrl = `https://signin.johndeere.com/oauth2/aus78tnlaysMraFhC1t7/v1/authorize?response_type=code&client_id=${CLIENT_ID}&redirect_uri=${REDIRECT_URI}&scope=${scopes}&state=${state}`; window.location.href = authUrl;}
+async function getToken(code) {showLoader(mainContent); try {const response = await fetch('/.netlify/functions/get-token', { method: 'POST', body: JSON.stringify({ code }) }); const data = await response.json(); if (!response.ok) throw new Error(data.error || 'No se pudo obtener el token.'); accessToken = data.access_token; showDashboard(); fetchOrganizations();} catch (error) {console.error('Error al obtener el token:', error); displayError(`Error de autenticación: ${error.message}`);}}
+function showLoginButton() {mainContent.innerHTML = `<a href="#" id="login-btn" class="login-button">Conectar con John Deere</a>`; document.getElementById('login-btn').addEventListener('click', (e) => { e.preventDefault(); handleLogin(); });}
+function showDashboard() {mainContent.style.display = 'none'; dashboard.style.display = 'grid';}
+function showLoader(container, text = 'Cargando...') {hideError(); container.innerHTML = `<div class="loader-text">${text}</div>`;}
+function hideLoader() {/* loader.style.display = 'none'; */}
+function displayError(message, container = null, isHtml = false) {if (container) {if (isHtml) {container.innerHTML = `<div class="error-inline">${message}</div>`;} else {container.innerHTML = `<div class="error-inline">${message}</div>`;}} else {mainContent.innerHTML = ''; if (isHtml) {errorMessage.innerHTML = message;} else {errorMessage.textContent = message;} errorMessage.style.display = 'block';} hideLoader();}
+function hideError() {errorMessage.style.display = 'none';}
+window.onload = () => {const urlParams = new URLSearchParams(window.location.search); const authCode = urlParams.get('code'); const error = urlParams.get('error'); const returnedState = urlParams.get('state'); window.history.replaceState({}, document.title, window.location.pathname); if (error) {const errorDescription = urlParams.get('error_description') || 'Ocurrió un error.'; displayError(`Error de John Deere: ${errorDescription}`); return;} if (authCode) {const storedState = sessionStorage.getItem('oauth_state'); sessionStorage.removeItem('oauth_state'); if (!storedState || storedState !== returnedState) {displayError('Error de seguridad: el "state" no coincide.'); setTimeout(showLoginButton, 3000); return;} getToken(authCode);} else {showLoginButton();}};
