@@ -31,6 +31,33 @@ async function fetchWithToken(endpoint) {
     return response;
 }
 
+async function getToken(code) {
+    showLoader(mainContent);
+    try {
+        const response = await fetch('/.netlify/functions/get-token', { method: 'POST', body: JSON.stringify({ code }) });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'No se pudo obtener el token.');
+        accessToken = data.access_token;
+        showDashboard();
+        fetchOrganizations(); // <-- Aquí es donde ocurre el error
+    } catch (error) {
+        console.error('Error al obtener el token:', error);
+        displayError(`Error de autenticación: ${error.message}`);
+    }
+}
+
+// Pega este bloque de código que falta
+async function fetchOrganizations() {
+    showLoader(orgList);
+    try {
+        const response = await fetchWithToken('organizations');
+        const data = await response.json();
+        displayOrganizations(data.values);
+    } catch (error) {
+        handleApiError(error, orgList, 'organizaciones');
+    }
+}
+
 async function handleOrgSelection(orgId) {
     machineList.innerHTML = '<p class="placeholder">Cargando...</p>';
     fieldList.innerHTML = '<p class="placeholder">Cargando...</p>';
@@ -94,7 +121,6 @@ function displayFields(fields, orgId) { if (!fields || fields.length === 0) { fi
 function displayFieldOperations(operations) { if (!operations || operations.length === 0) { operationList.innerHTML = '<p class="placeholder">No se encontraron operaciones para este campo.</p>'; return; } operationList.innerHTML = ''; operations.forEach(op => { const card = document.createElement('div'); card.className = 'operation-card'; card.innerHTML = `<h4>${op.name}</h4>`; operationList.appendChild(card); }); }
 tabs.addEventListener('click', (e) => { if (!e.target.classList.contains('tab-button')) return; const tabName = e.target.dataset.tab; tabs.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active')); e.target.classList.add('active'); document.querySelectorAll('.tab-content').forEach(content => { if (content.id === `${tabName}-list`) { content.classList.add('active'); } else { content.classList.remove('active'); } }); });
 function handleLogin() { const CLIENT_ID = '0oaqqj19wrudozUJm5d7'; const scopes = 'ag1 org1 eq1 files offline_access'; const state = Math.random().toString(36).substring(2); sessionStorage.setItem('oauth_state', state); const authUrl = `https://signin.johndeere.com/oauth2/aus78tnlaysMraFhC1t7/v1/authorize?response_type=code&client_id=${CLIENT_ID}&redirect_uri=${REDIRECT_URI}&scope=${scopes}&state=${state}`; window.location.href = authUrl; }
-async function getToken(code) { showLoader(mainContent); try { const response = await fetch('/.netlify/functions/get-token', { method: 'POST', body: JSON.stringify({ code }) }); const data = await response.json(); if (!response.ok) throw new Error(data.error || 'No se pudo obtener el token.'); accessToken = data.access_token; showDashboard(); fetchOrganizations(); } catch (error) { console.error('Error al obtener el token:', error); displayError(`Error de autenticación: ${error.message}`); } }
 function showLoginButton() { mainContent.innerHTML = `<a href="#" id="login-btn" class="login-button">Conectar con John Deere</a>`; document.getElementById('login-btn').addEventListener('click', (e) => { e.preventDefault(); handleLogin(); }); }
 function showDashboard() { mainContent.style.display = 'none'; dashboard.style.display = 'grid'; }
 function showLoader(container, text = 'Cargando...') { hideError(); container.innerHTML = `<div class="loader-text">${text}</div>`; }
