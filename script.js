@@ -4,7 +4,7 @@ const CLIENT_ID = '0oaqqj19wrudozUJm5d7';
 
 // URIs de redirección. La correcta se usará dependiendo del entorno.
 const REDIRECT_URI_DEV = 'https://stackblitz.com/~/github.com/biktormo/DS_Operations_Center'; // Ej: https://project-name-xyz.stackblitz.io
-const REDIRECT_URI_PROD = 'URL_DE_TU_APP_EN_NETLIFY'; // Ej: https://mi-app-jd.netlify.app
+const REDIRECT_URI_PROD = 'https://opcentersartor.netlify.app/'; // Ej: https://mi-app-jd.netlify.app
 
 // --- ELEMENTOS DEL DOM ---
 const mainContent = document.getElementById('main-content');
