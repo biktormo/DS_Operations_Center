@@ -38,7 +38,7 @@ header p {
 
 /* --- ESTILOS AÑADIDOS PARA EL LOGO --- */
 .company-logo {
-    height: 70px; /* Ajusta esta altura a lo que necesites */
+    height: 90px; /* Ajusta esta altura a lo que necesites */
     max-width: 200px; /* Evita que el logo sea demasiado ancho */
     margin-bottom: 20px; /* Espacio entre el logo y el título h1 */
 }
