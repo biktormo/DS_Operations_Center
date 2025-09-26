@@ -1,0 +1,101 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: #f0f4f8;
+    color: #1a202c;
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+.container {
+    background-color: white;
+    padding: 40px;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    max-width: 600px;
+    width: 100%;
+    transition: all 0.3s ease-in-out;
+}
+
+header h1 {
+    color: #2d3748;
+    font-size: 2rem;
+    margin-bottom: 10px;
+}
+
+header p {
+    color: #718096;
+    font-size: 1.1rem;
+    margin-bottom: 30px;
+}
+
+.login-button {
+    background-color: #38A169; /* Verde John Deere */
+    color: white;
+    border: none;
+    padding: 15px 30px;
+    font-size: 1rem;
+    font-weight: 600;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s, transform 0.2s;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.login-button:hover {
+    background-color: #2F855A;
+    transform: translateY(-2px);
+}
+
+.org-list {
+    list-style: none;
+    padding: 0;
+    margin-top: 20px;
+    text-align: left;
+}
+
+.org-list h2 {
+    text-align: center;
+    color: #2d3748;
+    margin-bottom: 20px;
+}
+
+.org-list li {
+    background-color: #edf2f7;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    font-weight: 600;
+}
+
+.loader {
+    border: 5px solid #f3f3f3;
+    border-top: 5px solid #38A169;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    animation: spin 1s linear infinite;
+    margin: 20px auto;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.error {
+    color: #e53e3e;
+    background-color: #fed7d7;
+    padding: 15px;
+    border-radius: 8px;
+    margin-top: 20px;
+    display: none; /* Se muestra con JS */
+}
