@@ -31,44 +31,9 @@ async function fetchWithToken(endpoint) {
     return response;
 }
 
-function handleLogin() {
-    const CLIENT_ID = '0oaqqj19wrudozUJm5d7';
-    const scopes = 'ag1 org1 eq1 files offline_access';
-    const state = Math.random().toString(36).substring(2);
-    sessionStorage.setItem('oauth_state', state);
-    const authUrl = `https://signin.johndeere.com/oauth2/aus78tnlaysMraFhC1t7/v1/authorize?response_type=code&client_id=${CLIENT_ID}&redirect_uri=${REDIRECT_URI}&scope=${scopes}&state=${state}`;
-    window.location.href = authUrl;
-}
-
-async function getToken(code) {
-    showLoader(mainContent);
-    try {
-        const response = await fetch('/.netlify/functions/get-token', { method: 'POST', body: JSON.stringify({ code }) });
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error || 'No se pudo obtener el token.');
-        accessToken = data.access_token;
-        showDashboard();
-        fetchOrganizations(); // ¡La función que faltaba!
-    } catch (error) {
-        console.error('Error al obtener el token:', error);
-        displayError(`Error de autenticación: ${error.message}`);
-    }
-}
-
-async function fetchOrganizations() {
-    showLoader(orgList);
-    try {
-        const response = await fetchWithToken('organizations');
-        const data = await response.json();
-        displayOrganizations(data.values);
-    } catch (error) {
-        handleApiError(error, orgList, 'organizaciones');
-    }
-}
-
 async function handleOrgSelection(orgId) {
-    machineList.innerHTML = '<p class="placeholder">Selecciona una organización para ver sus datos.</p>';
-    fieldList.innerHTML = '<p class="placeholder">Selecciona una organización para ver sus datos.</p>';
+    machineList.innerHTML = '<p class="placeholder">Cargando...</p>';
+    fieldList.innerHTML = '<p class="placeholder">Cargando...</p>';
     operationList.innerHTML = '<p class="placeholder">Selecciona un campo para ver sus operaciones.</p>';
     fetchMachines(orgId);
     fetchFields(orgId);
@@ -109,72 +74,6 @@ async function fetchFieldOperations(fieldId, orgId) {
 
 // --- RENDERIZADO Y MANEJO DE UI ---
 
-function displayOrganizations(organizations) {
-    orgList.innerHTML = '';
-    if (!organizations || organizations.length === 0) {
-        orgList.innerHTML = '<p class="placeholder">No se encontraron organizaciones.</p>';
-        return;
-    }
-    organizations.forEach(org => {
-        const orgItem = document.createElement('div');
-        orgItem.className = 'list-item';
-        orgItem.textContent = org.name;
-        orgItem.addEventListener('click', () => {
-            document.querySelectorAll('#org-list .list-item.active').forEach(item => item.classList.remove('active'));
-            orgItem.classList.add('active');
-            handleOrgSelection(org.id);
-        });
-        orgList.appendChild(orgItem);
-    });
-}
-
-function displayMachines(machines) {
-    machineList.innerHTML = '';
-    if (!machines || machines.length === 0) {
-        machineList.innerHTML = '<p class="placeholder">Esta organización no tiene máquinas conectadas.</p>';
-        return;
-    }
-    machines.forEach(machine => {
-        const card = document.createElement('div');
-        card.className = 'machine-card';
-        card.innerHTML = `<h4>${machine.name}</h4><p>ID: ${machine.id}</p><p>VIN: ${machine.vin || 'No disponible'}</p>`;
-        machineList.appendChild(card);
-    });
-}
-
-function displayFields(fields, orgId) {
-    fieldList.innerHTML = '';
-    if (!fields || fields.length === 0) {
-        fieldList.innerHTML = '<p class="placeholder">Esta organización no tiene campos registrados.</p>';
-        return;
-    }
-    fields.forEach(field => {
-        const fieldItem = document.createElement('div');
-        fieldItem.className = 'list-item';
-        fieldItem.textContent = field.name;
-        fieldItem.addEventListener('click', () => {
-            document.querySelectorAll('#field-list .list-item.active').forEach(item => item.classList.remove('active'));
-            fieldItem.classList.add('active');
-            fetchFieldOperations(field.id, orgId);
-        });
-        fieldList.appendChild(fieldItem);
-    });
-}
-
-function displayFieldOperations(operations) {
-    operationList.innerHTML = '';
-    if (!operations || operations.length === 0) {
-        operationList.innerHTML = '<p class="placeholder">No se encontraron operaciones para este campo.</p>';
-        return;
-    }
-    operations.forEach(op => {
-        const card = document.createElement('div');
-        card.className = 'operation-card';
-        card.innerHTML = `<h4>${op.name}</h4>`;
-        operationList.appendChild(card);
-    });
-}
-
 function handleApiError(error, container, resourceName) {
     console.error(`Error al obtener ${resourceName}:`, error);
     if (error.status === 403 && error.body && error.body.links) {
@@ -188,48 +87,18 @@ function handleApiError(error, container, resourceName) {
     displayError(`No se pudieron cargar los ${resourceName}. ${error.message}`, container);
 }
 
-tabs.addEventListener('click', (e) => {
-    if (!e.target.classList.contains('tab-button')) return;
-    const tabName = e.target.dataset.tab;
-    tabs.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
-    e.target.classList.add('active');
-    document.querySelectorAll('.tab-content').forEach(content => {
-        if (content.id === `${tabName}-list`) {
-            content.classList.add('active');
-        } else {
-            content.classList.remove('active');
-        }
-    });
-});
-
+// (El resto de las funciones de display, tabs, login, etc. van aquí)
+function displayOrganizations(organizations) { if (!organizations || organizations.length === 0) { orgList.innerHTML = '<p class="placeholder">No se encontraron organizaciones.</p>'; return; } orgList.innerHTML = ''; organizations.forEach(org => { const orgItem = document.createElement('div'); orgItem.className = 'list-item'; orgItem.textContent = org.name; orgItem.addEventListener('click', () => { document.querySelectorAll('#org-list .list-item.active').forEach(item => item.classList.remove('active')); orgItem.classList.add('active'); handleOrgSelection(org.id); }); orgList.appendChild(orgItem); }); }
+function displayMachines(machines) { if (!machines || machines.length === 0) { machineList.innerHTML = '<p class="placeholder">Esta organización no tiene máquinas conectadas.</p>'; return; } machineList.innerHTML = ''; machines.forEach(machine => { const card = document.createElement('div'); card.className = 'machine-card'; card.innerHTML = `<h4>${machine.name}</h4><p>ID: ${machine.id}</p><p>VIN: ${machine.vin || 'No disponible'}</p>`; machineList.appendChild(card); }); }
+function displayFields(fields, orgId) { if (!fields || fields.length === 0) { fieldList.innerHTML = '<p class="placeholder">Esta organización no tiene campos registrados.</p>'; return; } fieldList.innerHTML = ''; fields.forEach(field => { const fieldItem = document.createElement('div'); fieldItem.className = 'list-item'; fieldItem.textContent = field.name; fieldItem.addEventListener('click', () => { document.querySelectorAll('#field-list .list-item.active').forEach(item => item.classList.remove('active')); fieldItem.classList.add('active'); fetchFieldOperations(field.id, orgId); }); fieldList.appendChild(fieldItem); }); }
+function displayFieldOperations(operations) { if (!operations || operations.length === 0) { operationList.innerHTML = '<p class="placeholder">No se encontraron operaciones para este campo.</p>'; return; } operationList.innerHTML = ''; operations.forEach(op => { const card = document.createElement('div'); card.className = 'operation-card'; card.innerHTML = `<h4>${op.name}</h4>`; operationList.appendChild(card); }); }
+tabs.addEventListener('click', (e) => { if (!e.target.classList.contains('tab-button')) return; const tabName = e.target.dataset.tab; tabs.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active')); e.target.classList.add('active'); document.querySelectorAll('.tab-content').forEach(content => { if (content.id === `${tabName}-list`) { content.classList.add('active'); } else { content.classList.remove('active'); } }); });
+function handleLogin() { const CLIENT_ID = '0oaqqj19wrudozUJm5d7'; const scopes = 'ag1 org1 eq1 files offline_access'; const state = Math.random().toString(36).substring(2); sessionStorage.setItem('oauth_state', state); const authUrl = `https://signin.johndeere.com/oauth2/aus78tnlaysMraFhC1t7/v1/authorize?response_type=code&client_id=${CLIENT_ID}&redirect_uri=${REDIRECT_URI}&scope=${scopes}&state=${state}`; window.location.href = authUrl; }
+async function getToken(code) { showLoader(mainContent); try { const response = await fetch('/.netlify/functions/get-token', { method: 'POST', body: JSON.stringify({ code }) }); const data = await response.json(); if (!response.ok) throw new Error(data.error || 'No se pudo obtener el token.'); accessToken = data.access_token; showDashboard(); fetchOrganizations(); } catch (error) { console.error('Error al obtener el token:', error); displayError(`Error de autenticación: ${error.message}`); } }
 function showLoginButton() { mainContent.innerHTML = `<a href="#" id="login-btn" class="login-button">Conectar con John Deere</a>`; document.getElementById('login-btn').addEventListener('click', (e) => { e.preventDefault(); handleLogin(); }); }
 function showDashboard() { mainContent.style.display = 'none'; dashboard.style.display = 'grid'; }
 function showLoader(container, text = 'Cargando...') { hideError(); container.innerHTML = `<div class="loader-text">${text}</div>`; }
 function hideLoader() { }
 function displayError(message, container = null, isHtml = false) { if (container) { if (isHtml) { container.innerHTML = `<div class="error-inline">${message}</div>`; } else { container.innerHTML = `<div class="error-inline">${message}</div>`; } } else { mainContent.innerHTML = ''; if (isHtml) { errorMessage.innerHTML = message; } else { errorMessage.textContent = message; } errorMessage.style.display = 'block'; } hideLoader(); }
 function hideError() { errorMessage.style.display = 'none'; }
-
-window.onload = () => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const authCode = urlParams.get('code');
-    const error = urlParams.get('error');
-    const returnedState = urlParams.get('state');
-    window.history.replaceState({}, document.title, window.location.pathname);
-    if (error) {
-        const errorDescription = urlParams.get('error_description') || 'Ocurrió un error.';
-        displayError(`Error de John Deere: ${errorDescription}`);
-        return;
-    }
-    if (authCode) {
-        const storedState = sessionStorage.getItem('oauth_state');
-        sessionStorage.removeItem('oauth_state');
-        if (!storedState || storedState !== returnedState) {
-            displayError('Error de seguridad: el "state" no coincide.');
-            setTimeout(showLoginButton, 3000);
-            return;
-        }
-        getToken(authCode);
-    } else {
-        showLoginButton();
-    }
-};
+window.onload = () => { const urlParams = new URLSearchParams(window.location.search); const authCode = urlParams.get('code'); const error = urlParams.get('error'); const returnedState = urlParams.get('state'); window.history.replaceState({}, document.title, window.location.pathname); if (error) { const errorDescription = urlParams.get('error_description') || 'Ocurrió un error.'; displayError(`Error de John Deere: ${errorDescription}`); return; } if (authCode) { const storedState = sessionStorage.getItem('oauth_state'); sessionStorage.removeItem('oauth_state'); if (!storedState || storedState !== returnedState) { displayError('Error de seguridad: el "state" no coincide.'); setTimeout(showLoginButton, 3000); return; } getToken(authCode); } else { showLoginButton(); } };
