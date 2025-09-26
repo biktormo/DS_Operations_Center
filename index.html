@@ -3,19 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>App del Operation Center</title>
+    <title>Dashboard | Operation Center</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>DS Operation Center</h1>
-            <p>Conéctate para ver la información de tu organización.</p>
+            <h1>DS Operation Center Dashboard</h1>
+            <p>Información de organizaciones y máquinas conectadas.</p>
         </header>
 
         <main id="main-content">
-            <!-- El contenido se generará con JavaScript -->
+            <!-- El contenido inicial (botón de login) se generará con JavaScript -->
         </main>
+
+        <!-- Contenedores para el tablero -->
+        <div id="dashboard" class="dashboard-grid" style="display: none;">
+            <div id="org-panel" class="panel">
+                <h2>Organizaciones</h2>
+                <div id="org-list" class="list-container"></div>
+            </div>
+            <div id="machine-panel" class="panel">
+                <h2>Máquinas</h2>
+                <div id="machine-list" class="list-container">
+                    <p class="placeholder">Selecciona una organización para ver sus máquinas.</p>
+                </div>
+            </div>
+        </div>
 
         <div id="loader" class="loader" style="display: none;"></div>
         <div id="error-message" class="error"></div>

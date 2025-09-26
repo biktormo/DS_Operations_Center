@@ -99,3 +99,94 @@ header p {
     margin-top: 20px;
     display: none; /* Se muestra con JS */
 }
+
+/* ... tus estilos existentes ... */
+
+/* Estilos del Tablero */
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 30px;
+    text-align: left;
+    margin-top: 30px;
+    width: 100%;
+    max-width: 900px; /* Aumentamos el ancho para el tablero */
+}
+
+.container {
+    max-width: 900px;
+}
+
+.panel h2 {
+    color: #2d3748;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #edf2f7;
+}
+
+.list-container {
+    max-height: 60vh;
+    overflow-y: auto;
+    padding-right: 10px; /* Espacio para la barra de scroll */
+}
+
+.placeholder, .error-inline {
+    color: #718096;
+    padding: 20px;
+    background-color: #f7fafc;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.error-inline {
+    color: #c53030;
+    background-color: #fed7d7;
+}
+
+.list-item {
+    background-color: #f7fafc;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s, transform 0.2s;
+    border-left: 4px solid transparent;
+}
+
+.list-item:hover {
+    background-color: #e2e8f0;
+    transform: translateX(5px);
+}
+
+.list-item.active {
+    background-color: #38A169;
+    color: white;
+    border-left-color: #2F855A;
+}
+
+.machine-card {
+    background-color: #ffffff;
+    border: 1px solid #e2e8f0;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+.machine-card h4 {
+    margin: 0 0 10px 0;
+    color: #2d3748;
+}
+
+.machine-card p {
+    margin: 0;
+    color: #718096;
+    font-size: 0.9rem;
+}
+
+.loader-text {
+    text-align: center;
+    color: #718096;
+    padding: 20px;
+}

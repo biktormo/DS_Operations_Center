@@ -1,46 +1,32 @@
 // --- CONFIGURACIÓN ---
-// REEMPLAZA ESTE VALOR CON TU APPLICATION ID DE JOHN DEERE
-const CLIENT_ID = '0oaqqj19wrudozUJm5d7'; 
+// YA NO NECESITAMOS EL CLIENT_ID AQUÍ, lo usará la Netlify Function.
 
-// URIs de redirección. La correcta se usará dependiendo del entorno.
-const REDIRECT_URI_DEV = 'https://stackblitz.com/~/github.com/biktormo/DS_Operations_Center'; // Ej: https://project-name-xyz.stackblitz.io
-const REDIRECT_URI_PROD = 'https://opcentersartor.netlify.app/'; // Ej: https://mi-app-jd.netlify.app
+// La URI de redirección se obtiene dinámicamente.
+// Asegúrate de configurar la URL correcta en tu App de John Deere y en las variables de entorno de Netlify.
+const REDIRECT_URI = window.location.origin + window.location.pathname;
+
+// --- ESTADO DE LA APLICACIÓN ---
+let accessToken = null;
 
 // --- ELEMENTOS DEL DOM ---
 const mainContent = document.getElementById('main-content');
+const dashboard = document.getElementById('dashboard');
+const orgList = document.getElementById('org-list');
+const machineList = document.getElementById('machine-list');
 const loader = document.getElementById('loader');
 const errorMessage = document.getElementById('error-message');
 
-// --- LÓGICA DE LA APLICACIÓN ---
-
-/**
- * Determina la URI de redirección correcta basada en el hostname.
- * @returns {string} La URI de redirección.
- */
-function getRedirectUri() {
-    if (window.location.hostname.includes('stackblitz')) {
-        return REDIRECT_URI_DEV;
-    }
-    return REDIRECT_URI_PROD;
-}
+// --- LÓGICA DE LA API ---
 
 /**
  * Inicia el flujo de autenticación OAuth 2.0.
  */
 function handleLogin() {
+    // TU CLIENT_ID DE JOHN DEERE. Es seguro tenerlo en el frontend.
+    const CLIENT_ID = '0oaqqj19wrudozUJm5d7';
     const scopes = 'ag1 org1 eq1 files offline_access';
-    const authUrl = `https://signin.johndeere.com/oauth2/aus78tnlaysMraFhC1t7/v1/authorize?response_type=code&client_id=${CLIENT_ID}&redirect_uri=${getRedirectUri()}&scope=${scopes}`;
+    const authUrl = `https://signin.johndeere.com/oauth2/aus78tnlaysMraFhC1t7/v1/authorize?response_type=code&client_id=${CLIENT_ID}&redirect_uri=${REDIRECT_URI}&scope=${scopes}`;
     window.location.href = authUrl;
-}
-
-/**
- * Muestra un mensaje de error en la interfaz.
- * @param {string} message - El mensaje de error a mostrar.
- */
-function displayError(message) {
-    errorMessage.textContent = message;
-    errorMessage.style.display = 'block';
-    loader.style.display = 'none';
 }
 
 /**
@@ -48,97 +34,97 @@ function displayError(message) {
  * @param {string} code - El código de autorización de la URL.
  */
 async function getToken(code) {
-    showLoader();
+    showLoader(mainContent);
     try {
-        // La URL de la función es relativa a la raíz del sitio.
         const response = await fetch('/.netlify/functions/get-token', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ code: code }),
+            body: JSON.stringify({ code }),
         });
 
+        const data = await response.json();
+        
         if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || 'No se pudo obtener el token.');
+            throw new Error(data.error || 'No se pudo obtener el token.');
         }
 
-        const data = await response.json();
-        // Guardamos el token para usarlo. En una app real, usa localStorage o sessionStorage.
-        fetchOrganizations(data.access_token);
+        accessToken = data.access_token;
+        // En una app real, aquí también guardarías el refresh_token y expires_in en localStorage
+        // para manejar la expiración del token.
+        
+        showDashboard();
+        fetchOrganizations();
 
     } catch (error) {
         console.error('Error al obtener el token:', error);
-        displayError(`Error al obtener el token: ${error.message}`);
+        displayError(`Error de autenticación: ${error.message}`);
     }
 }
 
 /**
  * Obtiene y muestra la lista de organizaciones del usuario.
- * @param {string} accessToken - El token de acceso para autenticar la llamada a la API.
  */
-async function fetchOrganizations(accessToken) {
-    showLoader();
+async function fetchOrganizations() {
+    showLoader(orgList);
     try {
-        const response = await fetch('https://sandboxapi.deere.com/platform/organizations', {
-            headers: {
-                'Authorization': `Bearer ${accessToken}`,
-                'Accept': 'application/vnd.deere.axiom.v3+json',
-            },
-        });
-
-        if (!response.ok) {
-            // Si el token es inválido o expiró, la API devolverá un error.
-             if (response.status === 401) {
-                // En una app real, aquí deberías usar el refresh_token para obtener un nuevo access_token.
-                throw new Error('Token no autorizado o expirado.');
-            }
-            throw new Error('Error al obtener las organizaciones.');
-        }
-
+        const response = await fetchWithToken('https://sandboxapi.deere.com/platform/organizations');
         const data = await response.json();
         displayOrganizations(data.values);
-
     } catch (error) {
-        console.error('Error en la llamada a la API:', error);
-        displayError(`Error al obtener datos de la API: ${error.message}`);
+        console.error('Error en la llamada a la API de Organizaciones:', error);
+        displayError(`Error al obtener organizaciones: ${error.message}`, orgList);
     }
 }
 
 /**
- * Renderiza la lista de organizaciones en el DOM.
- * @param {Array} organizations - Un array de objetos de organización.
+ * Obtiene las máquinas para una organización específica.
+ * @param {string} orgId - El ID de la organización.
  */
-function displayOrganizations(organizations) {
-    mainContent.innerHTML = ''; // Limpiar contenido anterior
-    loader.style.display = 'none';
-
-    if (organizations && organizations.length > 0) {
-        const orgList = document.createElement('div');
-        orgList.className = 'org-list';
-        orgList.innerHTML = '<h2>Tus Organizaciones</h2>';
-        
-        const ul = document.createElement('ul');
-        organizations.forEach(org => {
-            const li = document.createElement('li');
-            li.textContent = `${org.name} (ID: ${org.id})`;
-            ul.appendChild(li);
-        });
-
-        orgList.appendChild(ul);
-        mainContent.appendChild(orgList);
-    } else {
-        mainContent.innerHTML = '<p>No se encontraron organizaciones.</p>';
+async function fetchMachines(orgId) {
+    showLoader(machineList, 'Cargando máquinas...');
+    try {
+        const url = `https://sandboxapi.deere.com/platform/organizations/${orgId}/machines`;
+        const response = await fetchWithToken(url);
+        const data = await response.json();
+        displayMachines(data.values);
+    } catch (error) {
+        console.error(`Error al obtener máquinas para la org ${orgId}:`, error);
+        displayError(`No se pudieron cargar las máquinas. ${error.message}`, machineList);
     }
 }
 
 
 /**
- * Muestra el botón de inicio de sesión inicial.
+ * Helper para hacer llamadas a la API con el token de acceso.
+ * @param {string} url - La URL del endpoint de la API.
+ * @returns {Promise<Response>}
  */
+async function fetchWithToken(url) {
+    if (!accessToken) {
+        throw new Error("No hay token de acceso disponible.");
+    }
+    const response = await fetch(url, {
+        headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Accept': 'application/vnd.deere.axiom.v3+json',
+        },
+    });
+
+    if (!response.ok) {
+        if (response.status === 401) {
+            // Aquí implementarías la lógica de refresh token.
+            throw new Error('Token no autorizado o expirado. Por favor, vuelve a iniciar sesión.');
+        }
+        const errorData = await response.text();
+        throw new Error(`Error de API (${response.status}): ${errorData}`);
+    }
+    return response;
+}
+
+
+// --- RENDERIZADO DE UI ---
+
 function showLoginButton() {
-     mainContent.innerHTML = `
+    mainContent.innerHTML = `
         <a href="#" id="login-btn" class="login-button">Conectar con John Deere</a>
     `;
     document.getElementById('login-btn').addEventListener('click', (e) => {
@@ -147,33 +133,89 @@ function showLoginButton() {
     });
 }
 
-/**
- * Muestra el indicador de carga.
- */
-function showLoader() {
-    mainContent.innerHTML = ''; // Limpiar para solo mostrar el loader
+function showDashboard() {
+    mainContent.style.display = 'none';
+    dashboard.style.display = 'grid';
+}
+
+function displayOrganizations(organizations) {
+    orgList.innerHTML = ''; // Limpiar loader
+    if (!organizations || organizations.length === 0) {
+        orgList.innerHTML = '<p class="placeholder">No se encontraron organizaciones.</p>';
+        return;
+    }
+
+    organizations.forEach(org => {
+        const orgItem = document.createElement('div');
+        orgItem.className = 'list-item';
+        orgItem.textContent = org.name;
+        orgItem.dataset.orgId = org.id; // Guardamos el ID para usarlo después
+
+        orgItem.addEventListener('click', () => {
+            // Marcar como activo
+            document.querySelectorAll('.list-item.active').forEach(item => item.classList.remove('active'));
+            orgItem.classList.add('active');
+            
+            // Cargar máquinas
+            fetchMachines(org.id);
+        });
+        orgList.appendChild(orgItem);
+    });
+}
+
+function displayMachines(machines) {
+    machineList.innerHTML = ''; // Limpiar loader o placeholder
+    if (!machines || machines.length === 0) {
+        machineList.innerHTML = '<p class="placeholder">Esta organización no tiene máquinas conectadas.</p>';
+        return;
+    }
+    
+    machines.forEach(machine => {
+        const card = document.createElement('div');
+        card.className = 'machine-card';
+        card.innerHTML = `
+            <h4>${machine.name}</h4>
+            <p>ID: ${machine.id}</p>
+            <p>VIN: ${machine.vin || 'No disponible'}</p>
+        `;
+        machineList.appendChild(card);
+    });
+}
+
+function showLoader(container, text = 'Cargando...') {
+    hideError();
+    container.innerHTML = `<div class="loader-text">${text}</div>`;
     loader.style.display = 'block';
+}
+
+function hideLoader() {
+    loader.style.display = 'none';
+}
+
+function displayError(message, container = null) {
+    if (container) {
+        container.innerHTML = `<div class="error-inline">${message}</div>`;
+    } else {
+        mainContent.innerHTML = '';
+        errorMessage.textContent = message;
+        errorMessage.style.display = 'block';
+    }
+    hideLoader();
+}
+
+function hideError() {
     errorMessage.style.display = 'none';
 }
 
-
 // --- PUNTO DE ENTRADA ---
-
-/**
- * Se ejecuta cuando la página se carga.
- * Comprueba si la URL contiene un `code` para saber si estamos volviendo de John Deere.
- */
 window.onload = () => {
     const urlParams = new URLSearchParams(window.location.search);
     const authCode = urlParams.get('code');
 
     if (authCode) {
-        // Si tenemos un código, lo intercambiamos por un token.
-        // Limpiamos la URL para que el código no quede visible.
         window.history.replaceState({}, document.title, window.location.pathname);
         getToken(authCode);
     } else {
-        // Si no hay código, mostramos el botón de login.
         showLoginButton();
     }
 };
