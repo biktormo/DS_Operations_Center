@@ -19,10 +19,51 @@ const loader = document.getElementById('loader');
 const errorMessage = document.getElementById('error-message');
 
 // --- LÓGICA DE LA API ---
-async function fetchWithToken(endpoint) { if (!accessToken) throw new Error("No hay token de acceso disponible."); const proxyUrl = `/.netlify/functions/api-proxy?endpoint=${encodeURIComponent(endpoint)}`; const response = await fetch(proxyUrl, { headers: { 'x-jd-access-token': accessToken } }); if (!response.ok) { const errorText = await response.text(); let errorData; try { errorData = JSON.parse(errorText); } catch (e) { errorData = { message: errorText }; } const error = new Error(errorData.message || errorData.error_description || `Error de API (${response.status})`); error.status = response.status; error.body = errorData; throw error; } return response; }
+
+async function fetchWithToken(endpoint) {
+    if (!accessToken) throw new Error("No hay token de acceso disponible.");
+    const proxyUrl = `/.netlify/functions/api-proxy?endpoint=${encodeURIComponent(endpoint)}`;
+    const response = await fetch(proxyUrl, { headers: { 'x-jd-access-token': accessToken } });
+    if (!response.ok) {
+        const errorText = await response.text();
+        let errorData;
+        try { errorData = JSON.parse(errorText); } catch (e) { errorData = { message: errorText }; }
+        const error = new Error(errorData.message || errorData.error_description || `Error de API (${response.status})`);
+        error.status = response.status;
+        error.body = errorData;
+        throw error;
+    }
+    return response;
+}
+
+async function fetchOrganizations() {
+    showLoader(orgList);
+    try {
+        const response = await fetchWithToken('organizations');
+        const data = await response.json();
+        const connectionLink = data.links?.find(link => link.rel === 'connections');
+
+        if (connectionLink) {
+            // MODO CONFIGURACIÓN: El link existe, el usuario DEBE actuar.
+            dashboard.classList.remove('three-columns');
+            const messageHtml = `<h2>Paso Final: Conecta tus Organizaciones</h2><p>Para empezar a ver tus datos, necesitas autorizar a cuáles de tus organizaciones puede acceder SARTOR.</p><a href="${connectionLink.uri}" class="permission-link" style="display:block; text-align:center; margin-top:20px;">Configurar Conexiones</a>`;
+            orgList.innerHTML = `<div class="setup-message">${messageHtml}</div>`;
+        } else {
+            // MODO OPERATIVO: No hay link, las conexiones ya existen.
+            dashboard.classList.add('three-columns');
+            dataPanel.style.display = 'block';
+            detailsPanel.style.display = 'block';
+            displayOrganizations(data.values);
+        }
+    } catch (error) {
+        handleApiError(error, orgList, 'organizaciones');
+    }
+}
+
+// --- El resto de las funciones ---
+
 function handleLogin() { const CLIENT_ID = '0oaqqj19wrudozUJm5d7'; const scopes = 'ag1 org1 eq1 files offline_access'; const state = Math.random().toString(36).substring(2); sessionStorage.setItem('oauth_state', state); const authUrl = `https://signin.johndeere.com/oauth2/aus78tnlaysMraFhC1t7/v1/authorize?response_type=code&client_id=${CLIENT_ID}&redirect_uri=${REDIRECT_URI}&scope=${scopes}&state=${state}`; window.location.href = authUrl; }
 async function getToken(code) { showLoader(mainContent); try { const response = await fetch('/.netlify/functions/get-token', { method: 'POST', body: JSON.stringify({ code }) }); const data = await response.json(); if (!response.ok) throw new Error(data.error || 'No se pudo obtener el token.'); accessToken = data.access_token; showDashboard(); fetchOrganizations(); } catch (error) { console.error('Error al obtener el token:', error); displayError(`Error de autenticación: ${error.message}`); } }
-async function fetchOrganizations() { showLoader(orgList); try { const response = await fetchWithToken('organizations'); const data = await response.json(); if (data.values && data.values.length > 0) { dashboard.classList.add('three-columns'); dataPanel.style.display = 'block'; detailsPanel.style.display = 'block'; displayOrganizations(data.values); } else { dashboard.classList.remove('three-columns'); const messageHtml = `<h2>No hay organizaciones conectadas</h2><p>Parece que no has conectado ninguna organización a SARTOR. Por favor, haz clic en el botón de abajo para configurar tus conexiones.</p><button id="get-connection-link-btn" class="permission-link" style="display:block; text-align:center; margin-top:20px;">Configurar Conexiones</button>`; orgList.innerHTML = `<div class="setup-message">${messageHtml}</div>`; document.getElementById('get-connection-link-btn').addEventListener('click', async () => { try { const linkResponse = await fetchWithToken('organizations'); const linkData = await linkResponse.json(); const connectionLink = linkData.links?.find(link => link.rel === 'connections'); if (connectionLink) { window.open(connectionLink.uri, '_blank'); } } catch (e) { console.error(e); } }); } } catch (error) { handleApiError(error, orgList, 'organizaciones'); } }
 async function handleOrgSelection(orgId) { machineList.innerHTML = '<p class="placeholder">Cargando...</p>'; fieldList.innerHTML = '<p class="placeholder">Cargando...</p>'; operationList.innerHTML = '<p class="placeholder">Selecciona un campo para ver sus operaciones.</p>'; fetchMachines(orgId); fetchFields(orgId); }
 async function fetchMachines(orgId) { showLoader(machineList, 'Cargando máquinas...'); try { const response = await fetchWithToken(`organizations/${orgId}/machines`); const data = await response.json(); displayMachines(data.values); } catch (error) { handleApiError(error, machineList, 'máquinas'); } }
 async function fetchFields(orgId) { showLoader(fieldList, 'Cargando campos...'); try { const response = await fetchWithToken(`organizations/${orgId}/fields`); const data = await response.json(); displayFields(data.values, orgId); } catch (error) { handleApiError(error, fieldList, 'campos'); } }
@@ -31,27 +72,46 @@ async function fetchFieldOperations(fieldId, orgId) { showLoader(operationList, 
 // --- RENDERIZADO Y MANEJO DE UI ---
 async function handleApiError(error, container, resourceName) {
     console.error(`Error al obtener ${resourceName}:`, error);
+
     if (error.status === 403) {
-        const messageHtml = `Acceso denegado (403). Esto suele significar que necesitas habilitar los permisos ("Connections") para esta organización. <button id="get-connection-link-btn" class="permission-link">Configurar Permisos de Conexión</button>`;
+        // Creamos el botón para configurar permisos.
+        const messageHtml = `
+            Acceso denegado (403). Esto suele significar que necesitas habilitar los permisos ("Connections") para esta organización.
+            <button id="get-connection-link-btn" class="permission-link">
+                Configurar Permisos de Conexión
+            </button>
+        `;
         displayError(messageHtml, container, true);
+
+        // Añadimos un event listener al nuevo botón.
         document.getElementById('get-connection-link-btn').addEventListener('click', async () => {
             try {
+                // Hacemos una llamada a /organizations para buscar el link de GESTIÓN.
                 const response = await fetchWithToken('organizations');
                 const data = await response.json();
-                const connectionLink = data.links?.find(link => link.rel === 'connections');
-                if (connectionLink) {
-                    window.open(connectionLink.uri, '_blank');
-                    displayError('Se ha abierto una nueva pestaña para configurar las conexiones. Una vez que guardes los cambios, por favor, haz clic de nuevo en la organización en la lista.', container, true);
+                
+                // Buscamos el link "manage_connections". Este link aparece una vez
+                // que al menos una organización ha sido conectada.
+                const manageLink = data.links?.find(link => link.rel === 'manage_connections');
+                
+                if (manageLink) {
+                    // Si encontramos el link de gestión, lo abrimos.
+                    window.open(manageLink.uri, '_blank');
+                    displayError('Se ha abierto una nueva pestaña para gestionar las conexiones. Habilita los permisos de Equipos y Agronomía, guarda, y luego haz clic de nuevo en la organización.', container, true);
                 } else {
-                    displayError('No se pudo obtener el link de conexiones. Por favor, verifica tus permisos en el portal de John Deere.', container);
+                    // Si por alguna razón no lo encontramos, mostramos un error genérico.
+                    displayError('No se pudo obtener el link para gestionar las conexiones. Por favor, hazlo manualmente desde connections.deere.com.', container);
                 }
+
             } catch (e) {
-                console.error('Error al intentar obtener el link de conexiones:', e);
-                displayError('Ocurrió un error al intentar obtener el link de conexiones.', container);
+                console.error('Error al intentar obtener el link de gestión:', e);
+                displayError('Ocurrió un error al intentar obtener el link de gestión de conexiones.', container);
             }
         });
         return;
     }
+
+    // Si el error no es 403, mostramos el mensaje de error normal.
     displayError(`No se pudieron cargar los ${resourceName}. ${error.message}`, container);
 }
 function displayOrganizations(organizations) { if (!organizations || organizations.length === 0) { return; } orgList.innerHTML = ''; organizations.forEach(org => { const orgItem = document.createElement('div'); orgItem.className = 'list-item'; orgItem.textContent = org.name; orgItem.addEventListener('click', () => { document.querySelectorAll('#org-list .list-item.active').forEach(item => item.classList.remove('active')); orgItem.classList.add('active'); handleOrgSelection(org.id); }); orgList.appendChild(orgItem); }); }
