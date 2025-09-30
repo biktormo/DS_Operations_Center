@@ -274,3 +274,10 @@ header p {
     color: #2d3748;
     font-size: 1rem;
 }
+
+.setup-message {
+    padding: 20px;
+    text-align: left;
+    background-color: #f7fafc;
+    border-radius: 8px;
+}
