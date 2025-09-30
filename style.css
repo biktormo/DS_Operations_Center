@@ -281,3 +281,7 @@ header p {
     background-color: #f7fafc;
     border-radius: 8px;
 }
+
+.dashboard-grid.three-columns {
+    grid-template-columns: 1fr 1.2fr 1.5fr;
+}
