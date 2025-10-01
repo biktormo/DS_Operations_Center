@@ -24,7 +24,7 @@ async function fetchWithToken(endpoint) { /* ... sin cambios ... */ }
 function handleLogin() {
     const CLIENT_ID = '0oaqqj19wrudozUJm5d7';
     // --- CAMBIO CLAVE: Solicitamos los scopes de nivel más alto ---
-    const scopes = 'ag3 org2 eq3 files offline_access';
+    const scopes = 'ag3 org2 eq2 files offline_access';
     const state = Math.random().toString(36).substring(2);
     sessionStorage.setItem('oauth_state', state);
     const authUrl = `https://signin.johndeere.com/oauth2/aus78tnlaysMraFhC1t7/v1/authorize?response_type=code&client_id=${CLIENT_ID}&redirect_uri=${REDIRECT_URI}&scope=${scopes}&state=${state}`;
