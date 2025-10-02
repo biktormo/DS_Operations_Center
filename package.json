@@ -2,6 +2,9 @@
   "name": "opcentersartor",
   "version": "1.0.0",
   "description": "PWA para conectar con John Deere Operation Center API",
+  "scripts": {
+    "build": "echo 'Instalando dependencias para las funciones...'"
+  },
   "dependencies": {
     "node-fetch": "^2.6.7"
   }
