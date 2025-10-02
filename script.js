@@ -90,7 +90,6 @@ async function handleOrgSelection(orgId) {
 async function fetchEquipmentAndFilter(orgId) {
     showLoader(machineList, 'Cargando equipos...');
     try {
-        // CORRECCIÓN FINAL: Endpoint 'equipment' y parámetro '?status=all'
         const response = await fetchWithToken('equipment?status=all');
         const data = await response.json();
         allEquipment = data.values || [];
@@ -104,7 +103,6 @@ async function fetchEquipmentAndFilter(orgId) {
 async function fetchFields(orgId) {
     showLoader(fieldList, 'Cargando campos...');
     try {
-        // CORRECCIÓN FINAL: Parámetro '?status=all'
         const response = await fetchWithToken(`organizations/${orgId}/fields?status=all`);
         const data = await response.json();
         displayFields(data.values, orgId);
@@ -201,11 +199,25 @@ function displayFieldOperations(operations) {
 
 tabs.addEventListener('click', (e) => {
     if (!e.target.classList.contains('tab-button')) return;
-    const tabName = e.target.dataset.tab;
+    
+    // --- INICIO DE LA CORRECCIÓN ---
+    // El data-tab del botón de campos es 'fields'
+    const tabName = e.target.dataset.tab; // será 'machines' o 'fields'
+    
+    // El id del panel de campos es 'field-list' (singular)
+    // El id del panel de máquinas es 'machine-list'
+    // Vamos a manejar esta diferencia aquí:
+    let contentId = `${tabName}-list`;
+    if (tabName === 'fields') {
+        contentId = 'field-list';
+    }
+    // --- FIN DE LA CORRECCIÓN ---
+
     tabs.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
     e.target.classList.add('active');
+    
     document.querySelectorAll('.tab-content').forEach(content => {
-        if (content.id === `${tabName}-list`) {
+        if (content.id === contentId) {
             content.classList.add('active');
         } else {
             content.classList.remove('active');
@@ -213,70 +225,10 @@ tabs.addEventListener('click', (e) => {
     });
 });
 
-function showLoginButton() {
-    mainContent.innerHTML = `<a href="#" id="login-btn" class="login-button">Conectar con John Deere</a>`;
-    document.getElementById('login-btn').addEventListener('click', (e) => {
-        e.preventDefault();
-        handleLogin();
-    });
-}
-
-function showDashboard() {
-    mainContent.style.display = 'none';
-    dashboard.style.display = 'grid';
-}
-
-function showLoader(container, text = 'Cargando...') {
-    hideError();
-    container.innerHTML = `<div class="loader-text">${text}</div>`;
-}
-
+function showLoginButton() { mainContent.innerHTML = `<a href="#" id="login-btn" class="login-button">Conectar con John Deere</a>`; document.getElementById('login-btn').addEventListener('click', (e) => { e.preventDefault(); handleLogin(); }); }
+function showDashboard() { mainContent.style.display = 'none'; dashboard.style.display = 'grid'; }
+function showLoader(container, text = 'Cargando...') { hideError(); container.innerHTML = `<div class="loader-text">${text}</div>`; }
 function hideLoader() {}
-
-function displayError(message, container = null, isHtml = false) {
-    if (container) {
-        if (isHtml) {
-            container.innerHTML = `<div class="error-inline">${message}</div>`;
-        } else {
-            container.innerHTML = `<div class="error-inline">${message}</div>`;
-        }
-    } else {
-        mainContent.innerHTML = '';
-        if (isHtml) {
-            errorMessage.innerHTML = message;
-        } else {
-            errorMessage.textContent = message;
-        }
-        errorMessage.style.display = 'block';
-    }
-    hideLoader();
-}
-
-function hideError() {
-    errorMessage.style.display = 'none';
-}
-
-window.onload = () => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const authCode = urlParams.get('code');
-    const error = urlParams.get('error');
-    const returnedState = urlParams.get('state');
-    window.history.replaceState({}, document.title, window.location.pathname);
-    if (error) {
-        const errorDescription = urlParams.get('error_description') || 'Ocurrió un error.';
-        displayError(`Error de John Deere: ${errorDescription}`);
-        return;
-    }
-    if (authCode) {
-        const storedState = sessionStorage.getItem('oauth_state');
-        sessionStorage.removeItem('oauth_state');
-        if (!storedState || storedState !== returnedState) {
-            displayError('Error de seguridad: el "state" no coincide.');
-            setTimeout(showLoginButton, 3000);
-            return;
-        }
-        getToken(authCode);
-    } else {
-        showLoginButton();
-    }
-};
+function displayError(message, container = null, isHtml = false) { if (container) { if (isHtml) { container.innerHTML = `<div class="error-inline">${message}</div>`; } else { container.innerHTML = `<div class="error-inline">${message}</div>`; } } else { mainContent.innerHTML = ''; if (isHtml) { errorMessage.innerHTML = message; } else { errorMessage.textContent = message; } errorMessage.style.display = 'block'; } hideLoader(); }
+function hideError() { errorMessage.style.display = 'none'; }
+window.onload = () => { const urlParams = new URLSearchParams(window.location.search); const authCode = urlParams.get('code'); const error = urlParams.get('error'); const returnedState = urlParams.get('state'); window.history.replaceState({}, document.title, window.location.pathname); if (error) { const errorDescription = urlParams.get('error_description') || 'Ocurrió un error.'; displayError(`Error de John Deere: ${errorDescription}`); return; } if (authCode) { const storedState = sessionStorage.getItem('oauth_state'); sessionStorage.removeItem('oauth_state'); if (!storedState || storedState !== returnedState) { displayError('Error de seguridad: el "state" no coincide.'); setTimeout(showLoginButton, 3000); return; } getToken(authCode); } else { showLoginButton(); } };
