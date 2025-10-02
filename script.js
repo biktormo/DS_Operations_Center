@@ -36,29 +36,7 @@ async function fetchWithToken(endpoint) {
     return response;
 }
 
-function handleLogin() {
-    const scopes = 'ag3 org2 eq2 files offline_access';
-    const state = Math.random().toString(36).substring(2);
-    sessionStorage.setItem('oauth_state', state);
-    const authUrl = `https://signin.johndeere.com/oauth2/aus78tnlaysMraFhC1t7/v1/authorize?response_type=code&client_id=${CLIENT_ID}&redirect_uri=${REDIRECT_URI}&scope=${scopes}&state=${state}`;
-    window.location.href = authUrl;
-}
-
-async function getToken(code) {
-    showLoader(mainContent);
-    try {
-        const response = await fetch('/.netlify/functions/get-token', { method: 'POST', body: JSON.stringify({ code }) });
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error || 'No se pudo obtener el token.');
-        accessToken = data.access_token;
-        showDashboard();
-        fetchOrganizations();
-    } catch (error) {
-        console.error('Error al obtener el token:', error);
-        displayError(`Error de autenticación: ${error.message}`);
-    }
-}
-
+// Lógica de inicio simple: solo obtiene las organizaciones
 async function fetchOrganizations() {
     showLoader(orgList);
     try {
@@ -80,23 +58,20 @@ async function fetchOrganizations() {
     }
 }
 
-// --- INICIO DE LA CORRECCIÓN FINAL ---
-// Esta función ahora centraliza el estado de "Cargando" y espera a que ambas
-// llamadas a la API terminen antes de hacer nada más, evitando el bug.
+// Se ejecuta cada vez que se selecciona una organización
 async function handleOrgSelection(orgId) {
-    // 1. Poner ambos paneles en estado de carga INMEDIATAMENTE.
+    // Poner ambos paneles en estado de carga para evitar condiciones de carrera
     operationList.innerHTML = '<p class="placeholder">Selecciona un campo para ver sus operaciones.</p>';
     machineList.innerHTML = '<div class="loader-text">Cargando equipos...</div>';
     fieldList.innerHTML = '<div class="loader-text">Cargando campos...</div>';
 
-    // 2. Ejecutar ambas llamadas a la API en paralelo y esperar a que las dos terminen.
+    // Ejecutar ambas llamadas en paralelo y esperar a que terminen
     await Promise.all([
         fetchEquipmentForOrg(orgId),
         fetchFields(orgId)
     ]);
 }
 
-// 3. Las funciones de fetch ahora solo obtienen y muestran, no gestionan el loader.
 async function fetchEquipmentForOrg(orgId) {
     try {
         const response = await fetchWithToken('equipment?status=all');
@@ -118,7 +93,6 @@ async function fetchFields(orgId) {
         handleApiError(error, fieldList, 'campos', orgId);
     }
 }
-// --- FIN DE LA CORRECCIÓN FINAL ---
 
 async function fetchFieldOperations(fieldId, orgId) {
     showLoader(operationList, 'Cargando operaciones...');
@@ -206,88 +180,35 @@ function displayFieldOperations(operations) {
     });
 }
 
+// --- INICIO DE LA CORRECCIÓN FINAL ---
 tabs.addEventListener('click', (e) => {
     if (!e.target.classList.contains('tab-button')) return;
-    const tabName = e.target.dataset.tab;
-    let contentId = `${tabName}-list`;
-    if (tabName === 'fields') {
-        contentId = 'field-list';
-    }
+
+    const tabName = e.target.dataset.tab; // 'machines' o 'fields'
+
+    // Desactivar todo primero
     tabs.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+    // Activar el botón correcto
     e.target.classList.add('active');
-    document.querySelectorAll('.tab-content').forEach(content => {
-        if (content.id === contentId) {
-            content.classList.add('active');
-        } else {
-            content.classList.remove('active');
-        }
-    });
+
+    // Activar el panel correcto usando el ID correcto
+    if (tabName === 'machines') {
+        document.getElementById('machine-list').classList.add('active');
+    } else if (tabName === 'fields') {
+        document.getElementById('field-list').classList.add('active');
+    }
 });
+// --- FIN DE LA CORRECCIÓN FINAL ---
 
-function showLoginButton() {
-    mainContent.innerHTML = `<a href="#" id="login-btn" class="login-button">Conectar con John Deere</a>`;
-    document.getElementById('login-btn').addEventListener('click', (e) => {
-        e.preventDefault();
-        handleLogin();
-    });
-}
 
-function showDashboard() {
-    mainContent.style.display = 'none';
-    dashboard.style.display = 'grid';
-}
-
-function showLoader(container, text = 'Cargando...') {
-    hideError();
-    container.innerHTML = `<div class="loader-text">${text}</div>`;
-}
-
+function showLoginButton() { mainContent.innerHTML = `<a href="#" id="login-btn" class="login-button">Conectar con John Deere</a>`; document.getElementById('login-btn').addEventListener('click', (e) => { e.preventDefault(); handleLogin(); }); }
+function showDashboard() { mainContent.style.display = 'none'; dashboard.style.display = 'grid'; }
+function showLoader(container, text = 'Cargando...') { hideError(); container.innerHTML = `<div class="loader-text">${text}</div>`; }
 function hideLoader() {}
-
-function displayError(message, container = null, isHtml = false) {
-    if (container) {
-        if (isHtml) {
-            container.innerHTML = `<div class="error-inline">${message}</div>`;
-        } else {
-            container.innerHTML = `<div class="error-inline">${message}</div>`;
-        }
-    } else {
-        mainContent.innerHTML = '';
-        if (isHtml) {
-            errorMessage.innerHTML = message;
-        } else {
-            errorMessage.textContent = message;
-        }
-        errorMessage.style.display = 'block';
-    }
-    hideLoader();
-}
-
-function hideError() {
-    errorMessage.style.display = 'none';
-}
-
-window.onload = () => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const authCode = urlParams.get('code');
-    const error = urlParams.get('error');
-    const returnedState = urlParams.get('state');
-    window.history.replaceState({}, document.title, window.location.pathname);
-    if (error) {
-        const errorDescription = urlParams.get('error_description') || 'Ocurrió un error.';
-        displayError(`Error de John Deere: ${errorDescription}`);
-        return;
-    }
-    if (authCode) {
-        const storedState = sessionStorage.getItem('oauth_state');
-        sessionStorage.removeItem('oauth_state');
-        if (!storedState || storedState !== returnedState) {
-            displayError('Error de seguridad: el "state" no coincide.');
-            setTimeout(showLoginButton, 3000);
-            return;
-        }
-        getToken(authCode);
-    } else {
-        showLoginButton();
-    }
-};
+function displayError(message, container = null, isHtml = false) { if (container) { if (isHtml) { container.innerHTML = `<div class="error-inline">${message}</div>`; } else { container.innerHTML = `<div class="error-inline">${message}</div>`; } } else { mainContent.innerHTML = ''; if (isHtml) { errorMessage.innerHTML = message; } else { errorMessage.textContent = message; } errorMessage.style.display = 'block'; } hideLoader(); }
+function hideError() { errorMessage.style.display = 'none'; }
+function handleLogin() { const scopes = 'ag3 org2 eq2 files offline_access'; const state = Math.random().toString(36).substring(2); sessionStorage.setItem('oauth_state', state); const authUrl = `https://signin.johndeere.com/oauth2/aus78tnlaysMraFhC1t7/v1/authorize?response_type=code&client_id=${CLIENT_ID}&redirect_uri=${REDIRECT_URI}&scope=${scopes}&state=${state}`; window.location.href = authUrl; }
+async function getToken(code) { showLoader(mainContent); try { const response = await fetch('/.netlify/functions/get-token', { method: 'POST', body: JSON.stringify({ code }) }); const data = await response.json(); if (!response.ok) throw new Error(data.error || 'No se pudo obtener el token.'); accessToken = data.access_token; showDashboard(); fetchOrganizations(); } catch (error) { console.error('Error al obtener el token:', error); displayError(`Error de autenticación: ${error.message}`); } }
+window.onload = () => { const urlParams = new URLSearchParams(window.location.search); const authCode = urlParams.get('code'); const error = urlParams.get('error'); const returnedState = urlParams.get('state'); window.history.replaceState({}, document.title, window.location.pathname); if (error) { const errorDescription = urlParams.get('error_description') || 'Ocurrió un error.'; displayError(`Error de John Deere: ${errorDescription}`); return; } if (authCode) { const storedState = sessionStorage.getItem('oauth_state'); sessionStorage.removeItem('oauth_state'); if (!storedState || storedState !== returnedState) { displayError('Error de seguridad: el "state" no coincide.'); setTimeout(showLoginButton, 3000); return; } getToken(authCode); } else { showLoginButton(); } };
