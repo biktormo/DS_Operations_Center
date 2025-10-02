@@ -1,5 +1,3 @@
 [functions]
-  # Directorio donde se encuentran tus funciones
   directory = "netlify/functions/"
-  # Especifica la versión de Node.js (recomendado)
   node_bundler = "esbuild"
