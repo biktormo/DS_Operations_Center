@@ -21,7 +21,6 @@ const loader = document.getElementById('loader');
 const errorMessage = document.getElementById('error-message');
 
 // --- LÓGICA DE LA API ---
-
 async function fetchWithToken(endpoint) {
     if (!accessToken) throw new Error("No hay token de acceso disponible.");
     const proxyUrl = `/.netlify/functions/get-token?endpoint=${encodeURIComponent(endpoint)}`;
@@ -67,7 +66,6 @@ async function fetchOrganizations() {
         const response = await fetchWithToken('organizations');
         const data = await response.json();
         const hasConnectedOrgs = data.values && data.values.length > 0;
-
         if (hasConnectedOrgs) {
             dashboard.classList.add('three-columns');
             dataPanel.style.display = 'block';
@@ -92,6 +90,7 @@ async function handleOrgSelection(orgId) {
 async function fetchEquipmentAndFilter(orgId) {
     showLoader(machineList, 'Cargando equipos...');
     try {
+        // CORRECCIÓN FINAL: Endpoint 'equipment' y parámetro '?status=all'
         const response = await fetchWithToken('equipment?status=all');
         const data = await response.json();
         allEquipment = data.values || [];
@@ -105,6 +104,7 @@ async function fetchEquipmentAndFilter(orgId) {
 async function fetchFields(orgId) {
     showLoader(fieldList, 'Cargando campos...');
     try {
+        // CORRECCIÓN FINAL: Parámetro '?status=all'
         const response = await fetchWithToken(`organizations/${orgId}/fields?status=all`);
         const data = await response.json();
         displayFields(data.values, orgId);
@@ -167,11 +167,11 @@ function displayMachines(equipment) {
 }
 
 function displayFields(fields, orgId) {
+    fieldList.innerHTML = '';
     if (!fields || fields.length === 0) {
         fieldList.innerHTML = '<p class="placeholder">Esta organización no tiene campos registrados.</p>';
         return;
     }
-    fieldList.innerHTML = '';
     fields.forEach(field => {
         const fieldItem = document.createElement('div');
         fieldItem.className = 'list-item';
