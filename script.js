@@ -71,7 +71,7 @@ async function handleOrgSelection(orgId) {
 async function fetchEquipmentAndFilter(orgId) {
     showLoader(machineList, 'Cargando equipos...');
     try {
-        const response = await fetchWithToken('equipments'); // Llama al nuevo endpoint
+        const response = await fetchWithToken('equipment'); // Llama al nuevo endpoint
         const data = await response.json();
         allEquipment = data.values || [];
         const equipmentForOrg = allEquipment.filter(eq => String(eq.organizationId) === String(orgId));
