@@ -100,7 +100,8 @@ async function fetchAndDisplayMachineLocations() {
         return;
     }
 
-    const locationPromises = dealerEquipment.map(eq => fetchWithToken(`equipment/${eq.id}/locations`).then(res => res.json()));
+    // CORRECCIÓN: Usamos /equipments/ (plural)
+    const locationPromises = dealerEquipment.map(eq => fetchWithToken(`equipments/${eq.id}/locations`).then(res => res.json()));
     const locationResults = await Promise.all(locationPromises);
     const markers = [];
 
@@ -165,9 +166,10 @@ async function showEquipmentDetails(equipmentId) {
     modal.style.display = 'flex';
     modalBody.innerHTML = '<div class="loader"></div>';
     try {
+        // CORRECCIÓN: Usamos /equipments/ (plural)
         const [detailsResponse, hoursResponse] = await Promise.all([
-            fetchWithToken(`equipment/${equipmentId}`),
-            fetchWithToken(`equipment/${equipmentId}/engineHours`)
+            fetchWithToken(`equipments/${equipmentId}`),
+            fetchWithToken(`equipments/${equipmentId}/engineHours`)
         ]);
         const details = await detailsResponse.json();
         const hoursData = await hoursResponse.json();
