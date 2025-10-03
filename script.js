@@ -24,6 +24,9 @@ const mainHeaderTitle = document.getElementById('main-header-title');
 const modal = document.getElementById('details-modal');
 const modalBody = document.getElementById('modal-body');
 const modalCloseBtn = document.getElementById('modal-close-btn');
+const orgFilter = document.getElementById('org-filter');
+const typeFilter = document.getElementById('type-filter');
+const modelFilter = document.getElementById('model-filter');
 
 // --- LÓGICA DE LA API ---
 async function fetchWithToken(endpoint) {
@@ -54,7 +57,7 @@ async function loadDealerDashboard() {
         allOrganizations = orgsData.values || [];
 
         dealerOrg = allOrganizations.find(org => org.name === DEALER_ORG_NAME);
-        if (!dealerOrg) throw new Error(`Organización "${DEALER_ORG_NAME}" no encontrada o no conectada.`);
+        if (!dealerOrg) throw new Error(`Organización "${DEALER_ORG_NAME}" no encontrada.`);
         dealerNameDisplay.textContent = dealerOrg.name;
 
         const [equipmentResponse, fieldsResponse] = await Promise.all([
@@ -66,6 +69,7 @@ async function loadDealerDashboard() {
         allEquipment = equipmentData.values || [];
         allFields = (await fieldsResponse.json()).values || [];
 
+        populateFilters();
         displayDashboardKPIs();
         fetchAndDisplayMachineLocations();
         showPage('dashboard-page');
@@ -85,7 +89,7 @@ async function fetchAndDisplayMachineLocations() {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(dashboardMap);
     } else {
-        dashboardMap.eachLayer(layer => { if (!!layer.toGeoJSON) dashboardMap.removeLayer(layer); });
+        dashboardMap.eachLayer(layer => { if (layer instanceof L.Marker) dashboardMap.removeLayer(layer); });
     }
 
     const tractorIcon = L.divIcon({ className: 'tractor-icon', html: '🚜', iconSize: [24, 24] });
@@ -142,7 +146,12 @@ async function showFieldDetails(fieldId, orgId) {
             const coordinates = boundary.geometries[0].rings[0].map(p => [p.lat, p.lon]);
             const polygon = L.polygon(coordinates, { color: 'purple' }).addTo(fieldMap);
             fieldMap.fitBounds(polygon.getBounds());
-            setTimeout(() => fieldMap.invalidateSize(), 10);
+            setTimeout(() => {
+                const newMapElement = document.getElementById('field-map');
+                if (newMapElement) {
+                    fieldMap.invalidateSize();
+                }
+            }, 10);
         } else {
             fieldDetails.innerHTML = '<p>No se encontraron límites para este campo.</p>';
         }
@@ -163,38 +172,78 @@ async function showEquipmentDetails(equipmentId) {
         const details = await detailsResponse.json();
         const hoursData = await hoursResponse.json();
         const engineHours = hoursData.values?.[0]?.reading?.value || 'No disponible';
-        modalBody.innerHTML = `<h3>${details.title}</h3><p><strong>VIN:</strong> ${details.identificationNumber || 'N/A'}</p><p><strong>Tipo:</strong> ${details.equipmentType || 'N/A'}</p><p><strong>Modelo:</strong> ${details.model || 'N/A'}</p><p><strong>Horas de Motor:</strong> ${engineHours}</p>`;
+        modalBody.innerHTML = `<h3>${details.title}</h3><p><strong>VIN:</strong> ${details.identificationNumber || 'N/A'}</p><p><strong>Tipo:</strong> ${details.equipmentType || 'N/A'}</p><p><strong>Modelo:</strong> ${details.model?.name || 'N/A'}</p><p><strong>Horas de Motor:</strong> ${engineHours}</p>`;
     } catch (error) {
         console.error("Error al obtener detalles del equipo:", error);
         modalBody.innerHTML = `<p style="color: red;">Error al cargar los detalles: ${error.message}</p>`;
     }
 }
 
-function displayDashboardKPIs() {
-    kpiCards.innerHTML = `
-        <div class="kpi-card">
-            <p class="value">${allOrganizations.length}</p>
-            <p class="label">Organizaciones Conectadas</p>
-        </div>
-        <div class="kpi-card">
-            <p class="value">${allEquipment.filter(eq => eq.organization && String(eq.organization.id) === String(dealerOrg.id)).length}</p>
-            <p class="label">Equipos Supervisados</p>
-        </div>
-        <div class="kpi-card">
-            <p class="value">${allFields.length}</p>
-            <p class="label">Campos Gestionados</p>
-        </div>
-    `;
+function populateFilters() {
+    orgFilter.innerHTML = '<option value="">Todas las Organizaciones</option>';
+    typeFilter.innerHTML = '<option value="">Todos los Tipos</option>';
+    modelFilter.innerHTML = '<option value="">Todos los Modelos</option>';
+
+    allOrganizations.forEach(org => {
+        const option = document.createElement('option');
+        option.value = org.id;
+        option.textContent = org.name;
+        orgFilter.appendChild(option);
+    });
+
+    const types = new Set();
+    const models = new Set();
+    allEquipment.forEach(eq => {
+        if (eq.equipmentType) types.add(eq.equipmentType);
+        if (eq.model?.name) models.add(eq.model.name);
+    });
+
+    Array.from(types).sort().forEach(type => {
+        const option = document.createElement('option');
+        option.value = type;
+        option.textContent = type;
+        typeFilter.appendChild(option);
+    });
+
+    Array.from(models).sort().forEach(model => {
+        const option = document.createElement('option');
+        option.value = model;
+        option.textContent = model;
+        modelFilter.appendChild(option);
+    });
 }
 
-function displayEquipment() {
+function applyFiltersAndRender() {
+    const selectedOrg = orgFilter.value;
+    const selectedType = typeFilter.value;
+    const selectedModel = modelFilter.value;
+
+    let filteredEquipment = allEquipment;
+
+    if (selectedOrg) {
+        filteredEquipment = filteredEquipment.filter(eq => eq.organization?.id === selectedOrg);
+    }
+    if (selectedType) {
+        filteredEquipment = filteredEquipment.filter(eq => eq.equipmentType === selectedType);
+    }
+    if (selectedModel) {
+        filteredEquipment = filteredEquipment.filter(eq => eq.model?.name === selectedModel);
+    }
+    
+    displayEquipment(filteredEquipment);
+}
+
+function displayDashboardKPIs() {
+    kpiCards.innerHTML = `<div class="kpi-card"><p class="value">${allOrganizations.length}</p><p class="label">Organizaciones Conectadas</p></div><div class="kpi-card"><p class="value">${allEquipment.length}</p><p class="label">Equipos Totales</p></div><div class="kpi-card"><p class="value">${allFields.length}</p><p class="label">Campos Gestionados</p></div>`;
+}
+
+function displayEquipment(equipmentList) {
     equipmentGrid.innerHTML = '';
-    const equipmentForDealer = allEquipment.filter(eq => eq.organization && String(eq.organization.id) === String(dealerOrg.id));
-    if (equipmentForDealer.length === 0) {
-        equipmentGrid.innerHTML = '<p>No se encontraron equipos para esta organización.</p>';
+    if (equipmentList.length === 0) {
+        equipmentGrid.innerHTML = '<p>No se encontraron equipos que coincidan con los filtros.</p>';
         return;
     }
-    equipmentForDealer.forEach(eq => {
+    equipmentList.forEach(eq => {
         const card = document.createElement('div');
         card.className = 'equipment-card';
         card.innerHTML = `<h4>${eq.title || eq.name}</h4><p>ID: ${eq.principalId}</p><p>VIN: ${eq.identificationNumber || 'No disponible'}</p>`;
@@ -228,17 +277,24 @@ function showPage(pageId) {
     document.querySelectorAll('.nav-link').forEach(link => {
         link.classList.toggle('active', link.dataset.page === pageId);
     });
+    
     switch (pageId) {
         case 'dashboard-page': mainHeaderTitle.textContent = 'Dashboard'; break;
-        case 'equipment-page': mainHeaderTitle.textContent = 'Equipos'; displayEquipment(); break;
-        case 'fields-page': mainHeaderTitle.textContent = 'Campos'; displayFields(); break;
+        case 'equipment-page':
+            mainHeaderTitle.textContent = 'Equipos';
+            applyFiltersAndRender();
+            break;
+        case 'fields-page':
+            mainHeaderTitle.textContent = 'Campos';
+            displayFields();
+            break;
     }
 }
 
 function showLoginButton() {
     appContainer.style.display = 'none';
     loginContainer.style.display = 'flex';
-    loginContainer.innerHTML = `<div class="login-box"><img src="./assets/logo.svg" alt="Logo SARTOR" style="height: 50px; margin-bottom: 20px;"><h2>Operation Center Dashboard</h2><p>Conéctate para ver la información de tu concesionario.</p><a href="#" id="login-btn" class="login-button">Conectar con John Deere</a></div>`;
+    loginContainer.innerHTML = `<div class="login-box"><img src="./assets/logo.png" alt="Logo SARTOR" style="height: 60px; margin-bottom: 20px;"><h2>Operation Center Dashboard</h2><p>Conéctate para ver la información de tu concesionario.</p><a href="#" id="login-btn" class="login-button">Conectar con John Deere</a></div>`;
     document.getElementById('login-btn').addEventListener('click', (e) => {
         e.preventDefault();
         const scopes = 'ag3 org2 eq2 files offline_access';
@@ -253,6 +309,10 @@ function showLoader(container, text = '') { container.innerHTML = `<div class="l
 
 document.querySelectorAll('.nav-link').forEach(link => { link.addEventListener('click', (e) => { e.preventDefault(); showPage(e.target.dataset.page); }); });
 modalCloseBtn.addEventListener('click', () => { modal.style.display = 'none'; });
+orgFilter.addEventListener('change', applyFiltersAndRender);
+typeFilter.addEventListener('change', applyFiltersAndRender);
+modelFilter.addEventListener('change', applyFiltersAndRender);
+
 window.onload = async () => {
     const urlParams = new URLSearchParams(window.location.search);
     const authCode = urlParams.get('code');
