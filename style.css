@@ -1,51 +1,41 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
 
+/* --- Colores de John Deere --- */
+:root {
+    --jd-green: #367C2B;
+    --jd-yellow: #FFDE00;
+    --jd-dark-gray: #3a3a3a;
+    --jd-light-gray: #f0f4f8;
+    --jd-text-primary: #222;
+    --jd-text-secondary: #555;
+}
+
+/* --- Reseteo y Base --- */
 body {
     font-family: 'Inter', sans-serif;
-    background-color: #f0f4f8;
-    color: #1a202c;
     margin: 0;
+    background-color: var(--jd-light-gray);
+    color: var(--jd-text-primary);
+    overflow-x: hidden;
+}
+
+/* --- Contenedor de Login --- */
+#login-container {
     display: flex;
     justify-content: center;
     align-items: center;
     min-height: 100vh;
-    padding: 20px;
-    box-sizing: border-box;
 }
-
-.container {
+.login-box {
     background-color: white;
     padding: 40px;
     border-radius: 12px;
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
     text-align: center;
-    max-width: 600px;
-    width: 100%;
-    transition: all 0.3s ease-in-out;
+    max-width: 500px;
 }
-
-header h1 {
-    color: #2d3748;
-    font-size: 2rem;
-    margin-bottom: 10px;
-}
-
-header p {
-    color: #718096;
-    font-size: 1.1rem;
-    margin-bottom: 30px;
-}
-
-/* --- ESTILOS AÑADIDOS PARA EL LOGO --- */
-.company-logo {
-    height: 90px; /* Ajusta esta altura a lo que necesites */
-    max-width: 200px; /* Evita que el logo sea demasiado ancho */
-    margin-bottom: 20px; /* Espacio entre el logo y el título h1 */
-}
-/* --- FIN DE ESTILOS AÑADIDOS --- */
-
 .login-button {
-    background-color: #38A169; /* Verde John Deere */
+    background-color: var(--jd-green);
     color: white;
     border: none;
     padding: 15px 30px;
@@ -53,235 +43,215 @@ header p {
     font-weight: 600;
     border-radius: 8px;
     cursor: pointer;
-    transition: background-color 0.3s, transform 0.2s;
+    transition: background-color 0.3s;
     text-decoration: none;
-    display: inline-block;
 }
-
 .login-button:hover {
-    background-color: #2F855A;
-    transform: translateY(-2px);
+    background-color: #2a6421;
 }
 
-.org-list {
-    list-style: none;
-    padding: 0;
-    margin-top: 20px;
-    text-align: left;
+/* --- Layout Principal de la App --- */
+.app-container {
+    display: flex;
+    min-height: 100vh;
 }
 
-.org-list h2 {
+/* --- Barra Lateral (Sidebar) --- */
+.sidebar {
+    width: 240px;
+    background-color: var(--jd-dark-gray);
+    color: white;
+    display: flex;
+    flex-direction: column;
+    padding: 20px 0;
+    flex-shrink: 0;
+}
+.sidebar-header {
     text-align: center;
-    color: #2d3748;
+    margin-bottom: 30px;
+    padding: 0 20px;
+}
+.sidebar-logo {
+    height: 40px;
+    max-width: 100%;
+}
+.nav-link {
+    color: white;
+    text-decoration: none;
+    padding: 15px 25px;
+    font-weight: 600;
+    transition: background-color 0.2s;
+    border-left: 4px solid transparent;
+}
+.nav-link:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+.nav-link.active {
+    background-color: var(--jd-green);
+    border-left-color: var(--jd-yellow);
+}
+.sidebar-footer {
+    margin-top: auto;
+    padding: 20px;
+    text-align: center;
+}
+#legacy-view-btn {
+    background: none;
+    border: 1px solid #777;
+    color: #ccc;
+    padding: 8px 12px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.8rem;
+}
+#legacy-view-btn:hover {
+    background-color: #555;
+    color: white;
+}
+
+/* --- Vista Principal --- */
+.main-view {
+    flex-grow: 1;
+    padding: 30px;
+    overflow-y: auto;
+}
+.main-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid #ddd;
+}
+.main-header h1 {
+    margin: 0;
+    color: var(--jd-text-primary);
+}
+#dealer-name {
+    font-weight: 600;
+    color: var(--jd-text-secondary);
+}
+
+/* --- Páginas --- */
+.page {
+    display: none;
+}
+.page.active {
+    display: block;
+}
+.page-header {
     margin-bottom: 20px;
 }
 
-.org-list li {
-    background-color: #edf2f7;
+/* --- Grid de Equipos --- */
+.equipment-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+}
+.equipment-card {
+    background-color: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+.equipment-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 16px rgba(0,0,0,0.12);
+}
+.equipment-card h4 {
+    margin: 0 0 10px 0;
+    color: var(--jd-green);
+}
+.equipment-card p {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--jd-text-secondary);
+}
+
+/* --- Layout de Campos --- */
+.fields-layout {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: 30px;
+}
+.list-container {
+    background-color: white;
     padding: 15px;
     border-radius: 8px;
-    margin-bottom: 10px;
+    max-height: 60vh;
+    overflow-y: auto;
+}
+.list-item {
+    padding: 12px;
+    border-radius: 6px;
+    cursor: pointer;
     font-weight: 600;
+    margin-bottom: 5px;
+}
+.list-item:hover {
+    background-color: #f0f0f0;
+}
+.list-item.active {
+    background-color: var(--jd-green);
+    color: white;
+}
+.details-container {
+    background-color: white;
+    padding: 20px;
+    border-radius: 8px;
+}
+.placeholder {
+    color: #888;
 }
 
-.loader {
-    border: 5px solid #f3f3f3;
-    border-top: 5px solid #38A169;
-    border-radius: 50%;
-    width: 50px;
-    height: 50px;
-    animation: spin 1s linear infinite;
+/* --- Modal --- */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+.modal-content {
+    background-color: white;
+    padding: 30px;
+    border-radius: 10px;
+    width: 90%;
+    max-width: 600px;
+    position: relative;
+}
+.modal-close-btn {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    background: none;
+    border: none;
+    font-size: 1.8rem;
+    cursor: pointer;
+    color: #888;
+}
+#modal-body h3 {
+    margin-top: 0;
+    color: var(--jd-green);
+}
+#modal-body .loader {
     margin: 20px auto;
+    border: 5px solid #f3f3f3;
+    border-top: 5px solid var(--jd-green);
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
 }
-
 @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
-}
-
-.error {
-    color: #e53e3e;
-    background-color: #fed7d7;
-    padding: 15px;
-    border-radius: 8px;
-    margin-top: 20px;
-    display: none; /* Se muestra con JS */
-}
-
-/* ... tus estilos existentes ... */
-
-/* Estilos del Tablero */
-.dashboard-grid {
-    display: grid;
-    grid-template-columns: 1fr 2fr;
-    gap: 30px;
-    text-align: left;
-    margin-top: 30px;
-    width: 100%;
-    max-width: 900px; /* Aumentamos el ancho para el tablero */
-}
-
-.container {
-    max-width: 900px;
-}
-
-.panel h2 {
-    color: #2d3748;
-    margin-bottom: 20px;
-    padding-bottom: 10px;
-    border-bottom: 2px solid #edf2f7;
-}
-
-.list-container {
-    max-height: 60vh;
-    overflow-y: auto;
-    padding-right: 10px; /* Espacio para la barra de scroll */
-}
-
-.placeholder, .error-inline {
-    color: #718096;
-    padding: 20px;
-    background-color: #f7fafc;
-    border-radius: 8px;
-    text-align: center;
-}
-
-.error-inline {
-    color: #c53030;
-    background-color: #fed7d7;
-}
-
-.list-item {
-    background-color: #f7fafc;
-    padding: 15px;
-    border-radius: 8px;
-    margin-bottom: 10px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background-color 0.2s, color 0.2s, transform 0.2s;
-    border-left: 4px solid transparent;
-}
-
-.list-item:hover {
-    background-color: #e2e8f0;
-    transform: translateX(5px);
-}
-
-.list-item.active {
-    background-color: #38A169;
-    color: white;
-    border-left-color: #2F855A;
-}
-
-.machine-card {
-    background-color: #ffffff;
-    border: 1px solid #e2e8f0;
-    padding: 20px;
-    border-radius: 8px;
-    margin-bottom: 15px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-}
-
-.machine-card h4 {
-    margin: 0 0 10px 0;
-    color: #2d3748;
-}
-
-.machine-card p {
-    margin: 0;
-    color: #718096;
-    font-size: 0.9rem;
-}
-
-.loader-text {
-    text-align: center;
-    color: #718096;
-    padding: 20px;
-}
-
-/* ... tus estilos existentes ... */
-
-.permission-link {
-    display: inline-block;
-    margin: 10px 0;
-    padding: 8px 15px;
-    background-color: #3182ce;
-    color: white;
-    text-decoration: none;
-    border-radius: 5px;
-    font-weight: bold;
-    transition: background-color 0.2s;
-}
-
-.permission-link:hover {
-    background-color: #2b6cb0;
-}
-
-/* ... tus estilos existentes ... */
-
-/* Actualizar layout del tablero a 3 columnas */
-.dashboard-grid {
-    grid-template-columns: 1fr 1.2fr 1.5fr; /* Organizaciones | Datos | Detalles */
-    max-width: 1200px; /* Aumentar el ancho para 3 columnas */
-}
-.container {
-    max-width: 1200px;
-}
-
-/* Estilos para las pestañas */
-.tabs {
-    display: flex;
-    border-bottom: 2px solid #edf2f7;
-    margin-bottom: 20px;
-}
-.tab-button {
-    padding: 10px 20px;
-    cursor: pointer;
-    border: none;
-    background-color: transparent;
-    font-size: 1rem;
-    font-weight: 600;
-    color: #718096;
-    border-bottom: 3px solid transparent;
-    transition: color 0.2s, border-color 0.2s;
-}
-.tab-button:hover {
-    color: #2d3748;
-}
-.tab-button.active {
-    color: #38A169;
-    border-bottom-color: #38A169;
-}
-
-/* Lógica para mostrar/ocultar contenido de pestañas */
-.tab-content {
-    display: none;
-}
-.tab-content.active {
-    display: block;
-}
-
-/* Estilos para las operaciones */
-.operation-card {
-    background-color: #ffffff;
-    border: 1px solid #e2e8f0;
-    padding: 15px;
-    border-radius: 8px;
-    margin-bottom: 10px;
-}
-.operation-card h4 {
-    margin: 0;
-    color: #2d3748;
-    font-size: 1rem;
-}
-
-.setup-message {
-    padding: 20px;
-    text-align: left;
-    background-color: #f7fafc;
-    border-radius: 8px;
-}
-
-.dashboard-grid.three-columns {
-    grid-template-columns: 1fr 1.2fr 1.5fr;
 }

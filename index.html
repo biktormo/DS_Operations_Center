@@ -3,44 +3,73 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard | Operation Center</title>
+    <title>SARTOR | Operation Center Dashboard</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="container">
-        <header>
-            <img src="./assets/logo.png" alt="Logo de SARTOR" class="company-logo">
-            <h1>Dashboard (test)</h1>
-            <p>Información de organizaciones, máquinas y operaciones de campo.</p>
-        </header>
+    <div id="login-container">
+        <!-- El botón de login se generará aquí si es necesario -->
+    </div>
 
-        <main id="main-content">
-            <!-- Contenido inicial (botón de login) -->
-        </main>
-
-        <div id="dashboard" class="dashboard-grid" style="display: none;">
-            <div id="org-panel" class="panel">
-                <h2>Organizaciones</h2>
-                <div id="org-list" class="list-container"></div>
+    <div id="app-container" class="app-container" style="display: none;">
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <img src="./assets/logo.svg" alt="Logo SARTOR" class="sidebar-logo">
             </div>
-            <!-- Los paneles de datos y detalles se mostrarán con JS -->
-            <div id="data-panel" class="panel" style="display: none;"> 
-                <div class="tabs">
-                    <button class="tab-button active" data-tab="machines">Máquinas</button>
-                    <button class="tab-button" data-tab="fields">Campos</button>
+            <a href="#" class="nav-link active" data-page="dashboard-page">Dashboard</a>
+            <a href="#" class="nav-link" data-page="equipment-page">Equipos</a>
+            <a href="#" class="nav-link" data-page="fields-page">Campos</a>
+            <div class="sidebar-footer">
+                <button id="legacy-view-btn">Vista Multi-Org (Test)</button>
+            </div>
+        </nav>
+
+        <main class="main-view">
+            <header class="main-header">
+                <h1 id="main-header-title">Dashboard</h1>
+                <div id="dealer-name">Cargando...</div>
+            </header>
+
+            <!-- Contenedores de Página -->
+            <div id="dashboard-page" class="page active">
+                <h2>Bienvenido a tu Dashboard</h2>
+                <p>Selecciona una opción del menú para comenzar.</p>
+            </div>
+
+            <div id="equipment-page" class="page">
+                <div class="page-header">
+                    <h2>Equipos Conectados</h2>
+                    <!-- Aquí irán los filtros en el futuro -->
                 </div>
-                <div id="machine-list" class="list-container tab-content active"></div>
-                <div id="field-list" class="list-container tab-content"></div>
+                <div id="equipment-grid" class="equipment-grid">
+                    <!-- Las tarjetas de equipos se generarán aquí -->
+                </div>
             </div>
-            <div id="details-panel" class="panel" style="display: none;">
-                <h2>Operaciones de Campo</h2>
-                <div id="operation-list" class="list-container"></div>
+
+            <div id="fields-page" class="page">
+                 <div class="page-header">
+                    <h2>Campos de la Organización</h2>
+                </div>
+                <div class="fields-layout">
+                    <div id="field-list" class="list-container"></div>
+                    <div id="field-details" class="details-container">
+                        <p class="placeholder">Selecciona un campo para ver sus detalles y operaciones.</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal para detalles del equipo -->
+    <div id="details-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <button id="modal-close-btn" class="modal-close-btn">&times;</button>
+            <div id="modal-body">
+                <!-- El contenido del modal se generará aquí -->
             </div>
         </div>
-
-        <div id="loader" class="loader" style="display: none;"></div>
-        <div id="error-message" class="error"></div>
     </div>
+
     <script src="script.js"></script>
 </body>
 </html>
