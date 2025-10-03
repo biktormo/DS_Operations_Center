@@ -82,6 +82,7 @@ async function loadDealerDashboard() {
     }
 }
 
+// --- INICIO DE LA CORRECCIÓN FINAL ---
 async function fetchAndDisplayMachineLocations() {
     if (!dashboardMap) {
         dashboardMap = L.map('dashboard-map').setView([-27.0, -62.0], 5);
@@ -100,8 +101,8 @@ async function fetchAndDisplayMachineLocations() {
         return;
     }
 
-    // CORRECCIÓN: Usamos /equipments/ (plural)
-    const locationPromises = dealerEquipment.map(eq => fetchWithToken(`equipments/${eq.id}/locations`).then(res => res.json()));
+    // Corregido: 'equipment/' (singular)
+    const locationPromises = dealerEquipment.map(eq => fetchWithToken(`equipment/${eq.id}/locations`).then(res => res.json()));
     const locationResults = await Promise.all(locationPromises);
     const markers = [];
 
@@ -124,6 +125,26 @@ async function fetchAndDisplayMachineLocations() {
          document.getElementById('dashboard-map').innerHTML = '<p class="placeholder">No hay equipos con datos de ubicación.</p>';
     }
 }
+
+async function showEquipmentDetails(equipmentId) {
+    modal.style.display = 'flex';
+    modalBody.innerHTML = '<div class="loader"></div>';
+    try {
+        // Corregido: 'equipment/' (singular)
+        const [detailsResponse, hoursResponse] = await Promise.all([
+            fetchWithToken(`equipment/${equipmentId}`),
+            fetchWithToken(`equipment/${equipmentId}/engineHours`)
+        ]);
+        const details = await detailsResponse.json();
+        const hoursData = await hoursResponse.json();
+        const engineHours = hoursData.values?.[0]?.reading?.value || 'No disponible';
+        modalBody.innerHTML = `<h3>${details.title}</h3><p><strong>VIN:</strong> ${details.identificationNumber || 'N/A'}</p><p><strong>Tipo:</strong> ${details.equipmentType || 'N/A'}</p><p><strong>Modelo:</strong> ${details.model?.name || 'N/A'}</p><p><strong>Horas de Motor:</strong> ${engineHours}</p>`;
+    } catch (error) {
+        console.error("Error al obtener detalles del equipo:", error);
+        modalBody.innerHTML = `<p style="color: red;">Error al cargar los detalles: ${error.message}</p>`;
+    }
+}
+// --- FIN DE LA CORRECCIÓN FINAL ---
 
 async function showFieldDetails(fieldId, orgId) {
     const fieldMapContainer = document.getElementById('field-map');
@@ -159,25 +180,6 @@ async function showFieldDetails(fieldId, orgId) {
     } catch (error) {
         console.error("Error al obtener límites:", error);
         fieldDetails.innerHTML = `<p style="color:red;">Error al cargar los límites: ${error.message}</p>`;
-    }
-}
-
-async function showEquipmentDetails(equipmentId) {
-    modal.style.display = 'flex';
-    modalBody.innerHTML = '<div class="loader"></div>';
-    try {
-        // CORRECCIÓN: Usamos /equipments/ (plural)
-        const [detailsResponse, hoursResponse] = await Promise.all([
-            fetchWithToken(`equipments/${equipmentId}`),
-            fetchWithToken(`equipments/${equipmentId}/engineHours`)
-        ]);
-        const details = await detailsResponse.json();
-        const hoursData = await hoursResponse.json();
-        const engineHours = hoursData.values?.[0]?.reading?.value || 'No disponible';
-        modalBody.innerHTML = `<h3>${details.title}</h3><p><strong>VIN:</strong> ${details.identificationNumber || 'N/A'}</p><p><strong>Tipo:</strong> ${details.equipmentType || 'N/A'}</p><p><strong>Modelo:</strong> ${details.model?.name || 'N/A'}</p><p><strong>Horas de Motor:</strong> ${engineHours}</p>`;
-    } catch (error) {
-        console.error("Error al obtener detalles del equipo:", error);
-        modalBody.innerHTML = `<p style="color: red;">Error al cargar los detalles: ${error.message}</p>`;
     }
 }
 
