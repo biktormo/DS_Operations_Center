@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vista de Prueba | Operation Center</title>
+    <link rel="stylesheet" href="style.css"> <!-- Reutilizamos los mismos estilos -->
+</head>
+<body>
+    <div class="container" style="max-width: 1200px;">
+        <header>
+            <img src="./assets/logo.svg" alt="Logo SARTOR" class="company-logo" style="height: 40px; margin-bottom: 15px;">
+            <h1>Dashboard de Prueba (Multi-Organización)</h1>
+            <p>Usa esta vista para probar la conexión con cualquier organización.</p>
+            <a href="/" style="display: inline-block; margin-top: 10px; font-weight: bold;">&larr; Volver al Dashboard Principal</a>
+        </header>
+
+        <div id="dashboard" class="dashboard-grid three-columns">
+            <div id="org-panel" class="panel">
+                <h2>Organizaciones Conectadas</h2>
+                <div id="org-list" class="list-container"></div>
+            </div>
+            <div id="data-panel" class="panel">
+                <div class="tabs">
+                    <button class="tab-button active" data-tab="machines">Máquinas</button>
+                    <button class="tab-button" data-tab="fields">Campos</button>
+                </div>
+                <div id="machine-list" class="list-container tab-content active">
+                    <p class="placeholder">Selecciona una organización para ver sus datos.</p>
+                </div>
+                <div id="field-list" class="list-container tab-content"></div>
+            </div>
+            <div id="details-panel" class="panel">
+                <h2>Operaciones de Campo</h2>
+                <div id="operation-list" class="list-container">
+                    <p class="placeholder">Selecciona un campo para ver sus operaciones.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- El script de esta página es diferente -->
+    <script src="legacy.js"></script>
+</body>
+</html>
