@@ -246,8 +246,10 @@ function displayEquipment(equipmentList) {
     equipmentList.forEach(eq => {
         const card = document.createElement('div');
         card.className = 'equipment-card';
-        card.innerHTML = `<h4>${eq.title || eq.name}</h4><p>ID: ${eq.principalId}</p><p>VIN: ${eq.identificationNumber || 'No disponible'}</p>`;
-        card.addEventListener('click', () => showEquipmentDetails(eq.id));
+        card.innerHTML = `<h4>${eq.title || eq.name}</h4><p>ID: ${eq.principalId || 'No disponible'}</p><p>VIN: ${eq.identificationNumber || 'No disponible'}</p>`;
+        
+        card.addEventListener('click', () => showEquipmentDetails(eq.id)); 
+        
         equipmentGrid.appendChild(card);
     });
 }
@@ -294,7 +296,7 @@ function showPage(pageId) {
 function showLoginButton() {
     appContainer.style.display = 'none';
     loginContainer.style.display = 'flex';
-    loginContainer.innerHTML = `<div class="login-box"><img src="./assets/logo.png" alt="Logo SARTOR" style="height: 60px; margin-bottom: 20px;"><h2>Operation Center Dashboard</h2><p>Conéctate para ver la información de tu concesionario.</p><a href="#" id="login-btn" class="login-button">Conectar con John Deere</a></div>`;
+    loginContainer.innerHTML = `<div class="login-box"><img src="./assets/logo.svg" alt="Logo SARTOR" style="height: 50px; margin-bottom: 20px;"><h2>Operation Center Dashboard</h2><p>Conéctate para ver la información de tu concesionario.</p><a href="#" id="login-btn" class="login-button">Conectar con John Deere</a></div>`;
     document.getElementById('login-btn').addEventListener('click', (e) => {
         e.preventDefault();
         const scopes = 'ag3 org2 eq2 files offline_access';
@@ -339,4 +341,5 @@ window.onload = async () => {
         }
     }
 };
+
 document.getElementById('legacy-view-btn').addEventListener('click', () => { window.location.href = '/legacy.html'; });
